@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HTTP Control — PG3x Plugin Guide</title>
+<style>
+:root {
+  --navy:#10243e; --blue:#2563eb; --ink:#182230;
+  --muted:#64748b; --line:#dbe3ee; --bg:#f4f7fb;
+}
+* {box-sizing:border-box}
+body {margin:0;background:var(--bg);color:var(--ink);
+      font:15px/1.65 Arial,Helvetica,sans-serif}
+header {background:var(--navy);color:white;padding:35px 24px}
+header div,main {max-width:1000px;margin:auto}
+header h1 {margin:0;font-size:32px}
+header p {margin:8px 0 0;color:#dbeafe}
+main {padding:24px}
+section {background:white;border:1px solid var(--line);
+         border-radius:10px;padding:24px;margin-bottom:20px}
+h2 {color:var(--navy);margin-top:0}
+h3 {color:var(--blue)}
+table {width:100%;border-collapse:collapse;margin:15px 0}
+th,td {padding:10px;text-align:left;border-bottom:1px solid var(--line)}
+th {background:#eef4ff}
+code {background:#eef2f7;padding:2px 5px;border-radius:4px}
+pre {background:#10243e;color:#e2e8f0;padding:16px;
+     border-radius:8px;overflow-x:auto}
+pre code {background:none;color:inherit;padding:0}
+.note {border-left:4px solid var(--blue);background:#eff6ff;
+       padding:12px 16px;margin:16px 0}
+footer {text-align:center;color:var(--muted);padding:24px}
+</style>
+</head>
+<body>
+
+<header><div>
+<h1>HTTP Control</h1>
+<p>Universal Devices IoX / PG3x Node Server — Version 1.4.0</p>
+</div></header>
+
+<main>
+
+<section>
+<h2>Overview</h2>
+<p>HTTP Control allows IoX programs and devices to communicate with
+HTTP-enabled equipment and web services.</p>
+<p>Configure up to 16 independent endpoints, send HTTP requests,
+and expose numeric response values as IoX node drivers.</p>
+</section>
+
+<section>
+<h2>Features</h2>
+<ul>
+<li>GET, POST, PUT, and DELETE requests</li>
+<li>Custom HTTP headers and JSON request bodies</li>
+<li>Eight numeric response fields per endpoint</li>
+<li>Nested JSON and array parsing</li>
+<li>Plain-text numeric responses</li>
+<li>Optional automatic polling for GET requests</li>
+<li>HTTP status, response time, and success reporting</li>
+<li>Previous measurements preserved after failed requests</li>
+</ul>
+</section>
+
+<section>
+<h2>Configuration</h2>
+<p>Open the plugin's Custom Parameters page in PG3x.</p>
+
+<table>
+<tr><th>Parameter</th><th>Description</th></tr>
+<tr><td><code>url1_name</code></td><td>IoX node name</td></tr>
+<tr><td><code>url1_url</code></td><td>HTTP or HTTPS endpoint</td></tr>
+<tr><td><code>url1_method</code></td><td>GET, POST, PUT, DELETE</td></tr>
+<tr><td><code>url1_headers</code></td><td>Optional JSON object containing headers</td></tr>
+<tr><td><code>url1_body</code></td><td>Optional request body</td></tr>
+<tr><td><code>url1_interval</code></td><td>Polling interval in seconds; 0 disables</td></tr>
+<tr><td><code>url1_field1</code> – <code>url1_field8</code></td>
+<td>Response values to extract</td></tr>
+</table>
+
+<p>Repeat with <code>url2_</code> through <code>url16_</code>
+for additional endpoints.</p>
+
+<div class="note">
+Both name and URL are required. Save configuration changes
+and restart the plugin to apply them.
+</div>
+</section>
+
+<section>
+<h2>Example: JSON Response</h2>
+
+<pre><code>url1_name = Temperature Monitor
+url1_url = https://httpbin.org/anything?temperature=35&amp;humidity=62
+url1_method = GET
+url1_field1 = args.temperature
+url1_field2 = args.humidity
+url1_interval = 60</code></pre>
+
+<p>Field 1 displays 35 and Field 2 displays 62.</p>
+
+<p>Nested objects use dot notation. Array indices are numeric,
+for example <code>sensors.0.temperature</code>.</p>
+</section>
+
+<section>
+<h2>Example: Plain-Text Response</h2>
+
+<pre><code>url1_url = https://httpbin.org/base64/NzIuNQ==
+url1_method = GET
+url1_field1 = text</code></pre>
+
+<p>Field 1 displays <strong>72.5</strong>.</p>
+<p>Plain-text responses must contain a numeric value.</p>
+</section>
+
+<section>
+<h2>Example: POST Request</h2>
+
+<pre><code>url1_url = https://httpbin.org/anything
+url1_method = POST
+url1_body = {"temperature":47,"humidity":81}
+url1_field1 = json.temperature
+url1_field2 = json.humidity</code></pre>
+
+<p>Use the IoX <strong>Send Request</strong> command to execute
+the POST request.</p>
+</section>
+
+<section>
+<h2>Automatic Polling</h2>
+
+<p>Set <code>urlN_interval</code> to a positive number of seconds
+to enable automatic polling.</p>
+
+<pre><code>url1_interval = 60</code></pre>
+
+<p>Polling is checked during PG3x Short Poll events, so actual
+request frequency depends on the configured Short Poll interval.</p>
+
+<div class="note">
+<strong>Safety:</strong> Only GET requests are automatically polled.
+POST, PUT, and DELETE requests require explicit commands.
+</div>
+</section>
+
+<section>
+<h2>IoX Commands and Status</h2>
+
+<table>
+<tr><th>Command</th><th>Function</th></tr>
+<tr><td>Send Request</td><td>Executes the configured HTTP request</td></tr>
+<tr><td>Query</td><td>Reports stored values without sending a request</td></tr>
+</table>
+
+<table>
+<tr><th>Status</th><th>Description</th></tr>
+<tr><td>Last Request Successful</td><td>True for HTTP 200–299</td></tr>
+<tr><td>HTTP Status Code</td><td>HTTP response code</td></tr>
+<tr><td>Response Time (ms)</td><td>Request duration</td></tr>
+<tr><td>Fields 1–8</td><td>Extracted numeric response values</td></tr>
+</table>
+
+<p>Invalid or missing response fields retain their previous values.
+HTTP errors do not overwrite previous measurements.</p>
+</section>
+
+<section>
+<h2>Security and Limitations</h2>
+<ul>
+<li>Use HTTPS when available.</li>
+<li>Store API credentials in PG3x configuration, not source code.</li>
+<li>Protect access to PG3x configuration and diagnostic data.</li>
+<li>HTTP requests time out after five seconds.</li>
+<li>Redirects are not followed automatically.</li>
+<li>Response fields currently support numeric values only.</li>
+</ul>
+</section>
+
+</main>
+
+<footer>HTTP Control v1.4.0 — Universal Devices PG3x</footer>
+
+</body>
+</html>

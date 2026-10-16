@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.pyc
+
+# PG3x runtime files
+logs/
+*.log
+*.lock
+*.pid
+plugin_*.cert
+plugin_*.key
+
+# Development backups
+*.bak
+*.before-*
+
+# Local environment
+.env
+.venv/

@@ -1,0 +1,36 @@
+<nodeDefs>
+  <nodeDef id="httpctrl" nls="httpctrl">
+    <sts>
+      <st id="ST" editor="httpstate"/>
+    </sts>
+    <cmds>
+      <sends/>
+      <accepts>
+        <cmd id="QUERY"/>
+      </accepts>
+    </cmds>
+  </nodeDef>
+
+  <nodeDef id="httpendpoint" nls="httpendpoint">
+    <sts>
+      <st id="ST" editor="httpstate"/>
+      <st id="GV1" editor="httpnumber"/>
+      <st id="GV2" editor="httpnumber"/>
+      <st id="GV3" editor="httpnumber"/>
+      <st id="GV4" editor="httpnumber"/>
+      <st id="GV5" editor="httpnumber"/>
+      <st id="GV6" editor="httpnumber"/>
+      <st id="GV7" editor="httpnumber"/>
+      <st id="GV8" editor="httpnumber"/>
+      <st id="GV9" editor="httpnumber"/>
+      <st id="GV10" editor="httpnumber"/>
+    </sts>
+    <cmds>
+      <sends/>
+      <accepts>
+        <cmd id="SEND"/>
+        <cmd id="QUERY"/>
+      </accepts>
+    </cmds>
+  </nodeDef>
+</nodeDefs>

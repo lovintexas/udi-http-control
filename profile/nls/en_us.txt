@@ -1,0 +1,24 @@
+ND-httpctrl-NAME = HTTP Control
+ND-httpctrl-ICON = GenericCtl
+ST-httpctrl-ST-NAME = Connected
+
+ND-httpendpoint-NAME = HTTP Endpoint
+ND-httpendpoint-ICON = GenericCtl
+ST-httpendpoint-ST-NAME = Last Request Successful
+ST-httpendpoint-GV1-NAME = HTTP Status Code
+ST-httpendpoint-GV2-NAME = Response Time (ms)
+ST-httpendpoint-GV3-NAME = Field 1
+ST-httpendpoint-GV4-NAME = Field 2
+ST-httpendpoint-GV5-NAME = Field 3
+ST-httpendpoint-GV6-NAME = Field 4
+CMD-httpendpoint-SEND-NAME = Send Request
+CMD-httpendpoint-QUERY-NAME = Query
+CMD-httpctrl-QUERY-NAME = Query
+
+ST-httpendpoint-GV7-NAME = Field 5
+ST-httpendpoint-GV8-NAME = Field 6
+ST-httpendpoint-GV9-NAME = Field 7
+ST-httpendpoint-GV10-NAME = Field 8
+
+HTTPBOOLEAN-0 = False
+HTTPBOOLEAN-1 = True
