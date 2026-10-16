@@ -22,3 +22,16 @@ ST-httpendpoint-GV10-NAME = Field 8
 
 HTTPBOOLEAN-0 = False
 HTTPBOOLEAN-1 = True
+
+CMD-httpendpoint-DON-NAME = On
+CMD-httpendpoint-DOF-NAME = Off
+
+ND-httptrigger-NAME = HTTP Scene Controller
+ND-httptrigger-ICON = GenericCtl
+ST-httptrigger-ST-NAME = Trigger State
+CMD-httptrigger-DON-NAME = On
+CMD-httptrigger-DOF-NAME = Off
+
+HTTPTRIGGERSTATE-0 = False
+HTTPTRIGGERSTATE-1 = True
+HTTPTRIGGERSTATE-2 = Unknown

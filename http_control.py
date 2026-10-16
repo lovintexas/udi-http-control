@@ -1,11 +1,75 @@
 #!/usr/bin/env python3
 
 import json
+import operator
 import time
 import requests
 import udi_interface
 
 LOGGER = udi_interface.LOGGER
+
+
+class HttpTrigger(udi_interface.Node):
+    id = "httptrigger"
+
+    drivers = [
+        {"driver": "ST", "value": 2, "uom": 25},
+    ]
+
+    OPERATORS = {
+        "==": operator.eq,
+        "!=": operator.ne,
+        ">": operator.gt,
+        ">=": operator.ge,
+        "<": operator.lt,
+        "<=": operator.le,
+    }
+
+    def __init__(self, polyglot, primary, address, name,
+                 field_number, on_value, off_value,
+                 on_operator="==", off_operator="=="):
+        super().__init__(polyglot, primary, address, name)
+        self.field_number = field_number
+        self.on_value = float(on_value)
+        self.off_value = float(off_value)
+        self.on_operator = on_operator
+        self.off_operator = off_operator
+        self.current_state = None
+
+    def start(self):
+        # Explicitly initialize IoX status as Unknown.
+        self.setDriver("ST", 2, report=True, force=True)
+
+    def update_value(self, value):
+        value = float(value)
+
+        on_match = self.OPERATORS[self.on_operator](value, self.on_value)
+        off_match = self.OPERATORS[self.off_operator](value, self.off_value)
+
+        if on_match and off_match:
+            LOGGER.warning("%s: Both ON and OFF conditions match", self.name)
+            return
+
+        if on_match:
+            new_state = 1
+        elif off_match:
+            new_state = 0
+        else:
+            return
+
+        previous_state = self.current_state
+        self.current_state = new_state
+        self.setDriver("ST", new_state)
+
+        if previous_state != new_state:
+            command = "DON" if new_state else "DOF"
+            LOGGER.info("%s: Reporting %s", self.name, command)
+            self.reportCmd(command)
+
+    def query(self, command=None):
+        self.reportDrivers()
+
+    commands = {"QUERY": query}
 
 
 class HttpEndpoint(udi_interface.Node):
@@ -136,10 +200,16 @@ class HttpEndpoint(udi_interface.Node):
                     if isinstance(value, bool):
                         value = int(value)
 
+                    numeric_value = float(value)
+
                     self.setDriver(
                         f"GV{i+2}",
-                        float(value)
+                        numeric_value
                     )
+
+                    trigger = getattr(self, "triggers", {}).get(i)
+                    if trigger is not None:
+                        trigger.update_value(numeric_value)
 
                 except (
                     KeyError,
@@ -176,8 +246,17 @@ class HttpEndpoint(udi_interface.Node):
     def query(self, command=None):
         self.reportDrivers()
 
+    def turn_on(self, command=None):
+        self.send(command)
+
+    def turn_off(self, command=None):
+        # Scene OFF does not trigger an HTTP request.
+        pass
+
     commands = {
         "SEND": send,
+        "DON": turn_on,
+        "DOF": turn_off,
         "QUERY": query,
     }
 
@@ -242,6 +321,85 @@ class Controller(udi_interface.Node):
             self.poly.addNode(node)
             self.endpoints.append(node)
 
+            node.triggers = {}
+
+            for i in range(1, 9):
+                enabled = str(
+                    self.params.get(
+                        prefix + f"field{i}_controller", "false"
+                    )
+                ).strip().lower()
+
+                if enabled not in ("true", "yes", "1", "on"):
+                    continue
+
+                if not config.get(f"field{i}"):
+                    LOGGER.warning(
+                        "%s: Field %d controller has no response path",
+                        name, i
+                    )
+                    continue
+
+                try:
+                    on_value = float(
+                        self.params.get(prefix + f"field{i}_on", "1")
+                    )
+                    off_value = float(
+                        self.params.get(prefix + f"field{i}_off", "0")
+                    )
+
+                    on_operator = str(
+                        self.params.get(
+                            prefix + f"field{i}_on_operator", "=="
+                        )
+                    ).strip()
+
+                    off_operator = str(
+                        self.params.get(
+                            prefix + f"field{i}_off_operator", "=="
+                        )
+                    ).strip()
+
+                    if on_operator not in HttpTrigger.OPERATORS:
+                        raise ValueError("Invalid ON comparison operator")
+
+                    if off_operator not in HttpTrigger.OPERATORS:
+                        raise ValueError("Invalid OFF comparison operator")
+
+                    if (on_operator == off_operator == "=="
+                            and on_value == off_value):
+                        raise ValueError("ON and OFF values must differ")
+
+                except (ValueError, TypeError) as ex:
+                    LOGGER.error(
+                        "%s: Invalid controller values for field %d: %s",
+                        name, i, ex
+                    )
+                    continue
+
+                trigger = HttpTrigger(
+                    self.poly,
+                    self.address,
+                    f"url{num}f{i}",
+                    f"{name} - Field {i}",
+                    i,
+                    on_value,
+                    off_value,
+                    on_operator,
+                    off_operator
+                )
+
+                self.poly.addNode(trigger)
+                node.triggers[i] = trigger
+                trigger.start()
+
+                LOGGER.info(
+                    "%s - Field %d: ON %s %s, OFF %s %s",
+                    name, i,
+                    on_operator, on_value,
+                    off_operator, off_value
+                )
+
     def poll(self):
         now = time.monotonic()
 
@@ -288,7 +446,7 @@ def stop_handler():
 if __name__ == "__main__":
     try:
         polyglot = udi_interface.Interface([])
-        polyglot.start("1.4.1")
+        polyglot.start("1.5.0")
 
         polyglot.subscribe(
             polyglot.CUSTOMPARAMS,

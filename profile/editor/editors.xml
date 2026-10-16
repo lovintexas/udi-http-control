@@ -5,4 +5,7 @@
   <editor id="httpnumber">
     <range uom="56" min="-1000000" max="1000000" step="0.01" prec="2"/>
   </editor>
+  <editor id="httptriggerstate">
+    <range uom="25" subset="0-2" nls="HTTPTRIGGERSTATE"/>
+  </editor>
 </editors>

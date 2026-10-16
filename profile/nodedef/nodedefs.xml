@@ -28,7 +28,24 @@
     <cmds>
       <sends/>
       <accepts>
+        <cmd id="DON"/>
+        <cmd id="DOF"/>
         <cmd id="SEND"/>
+        <cmd id="QUERY"/>
+      </accepts>
+    </cmds>
+  </nodeDef>
+
+  <nodeDef id="httptrigger" nls="httptrigger">
+    <sts>
+      <st id="ST" editor="httptriggerstate"/>
+    </sts>
+    <cmds>
+      <sends>
+        <cmd id="DON"/>
+        <cmd id="DOF"/>
+      </sends>
+      <accepts>
         <cmd id="QUERY"/>
       </accepts>
     </cmds>

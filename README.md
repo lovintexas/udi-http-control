@@ -144,4 +144,36 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.4.0
+1.5.0
+
+## HTTP Scene Controllers (v1.5.0)
+
+Each HTTP endpoint supports up to eight optional scene-controller nodes,
+one for each numeric response field.
+
+Example configuration:
+
+    url1_field1 = temperature
+    url1_field1_controller = true
+    url1_field1_on = 75
+    url1_field1_on_operator = >=
+    url1_field1_off = 70
+    url1_field1_off_operator = <=
+
+Add the resulting Field 1 node to an IoX scene as a Controller.
+
+Supported comparison operators: ==, !=, >, >=, <, <=
+
+Operators default to ==. ON and OFF thresholds default to 1 and 0.
+
+The first matching reading after startup sends an ON or OFF event.
+Subsequent events occur only when the controller state changes.
+
+Values between the thresholds retain the previous state (hysteresis).
+Before either condition matches, the controller displays Unknown.
+
+If both ON and OFF conditions match, neither event is sent.
+
+Failed HTTP requests and invalid response fields do not trigger scenes.
+
+Save Custom Parameters and restart the node server after configuration changes.
