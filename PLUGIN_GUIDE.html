@@ -2,186 +2,72 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Complete setup and usage guide for HTTP Control, a Universal Devices PG3x node server for HTTP endpoints.">
 <title>HTTP Control — PG3x Plugin Guide</title>
 <style>
-:root {
-  --navy:#10243e; --blue:#2563eb; --ink:#182230;
-  --muted:#64748b; --line:#dbe3ee; --bg:#f4f7fb;
-}
-* {box-sizing:border-box}
-body {margin:0;background:var(--bg);color:var(--ink);
-      font:15px/1.65 Arial,Helvetica,sans-serif}
-header {background:var(--navy);color:white;padding:35px 24px}
-header div,main {max-width:1000px;margin:auto}
-header h1 {margin:0;font-size:32px}
-header p {margin:8px 0 0;color:#dbeafe}
-main {padding:24px}
-section {background:white;border:1px solid var(--line);
-         border-radius:10px;padding:24px;margin-bottom:20px}
-h2 {color:var(--navy);margin-top:0}
-h3 {color:var(--blue)}
-table {width:100%;border-collapse:collapse;margin:15px 0}
-th,td {padding:10px;text-align:left;border-bottom:1px solid var(--line)}
-th {background:#eef4ff}
-code {background:#eef2f7;padding:2px 5px;border-radius:4px}
-pre {background:#10243e;color:#e2e8f0;padding:16px;
-     border-radius:8px;overflow-x:auto}
-pre code {background:none;color:inherit;padding:0}
-.note {border-left:4px solid var(--blue);background:#eff6ff;
-       padding:12px 16px;margin:16px 0}
-footer {text-align:center;color:var(--muted);padding:24px}
+:root{--navy:#10243e;--blue:#2563eb;--sky:#eaf2ff;--ink:#182230;--muted:#64748b;--line:#dbe3ee;--green:#0f766e;--bg:#f4f7fb;--orange:#a65b08}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.7 Arial,Helvetica,sans-serif}a{color:#1d4ed8}a:hover{text-decoration:none}
+header{background:linear-gradient(115deg,#10243e,#183c6a);color:white;padding:43px 24px 38px}header .inner,.layout,footer .inner{max-width:1180px;margin:auto}header h1{font-size:38px;line-height:1.2;margin:0 0 8px}header p{margin:0;color:#dbeafe;max-width:800px}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:1.6px;color:#bfdbfe;font-weight:bold;margin-bottom:12px}.version{display:inline-block;background:#ffffff22;border:1px solid #ffffff44;border-radius:30px;padding:4px 12px;margin-top:18px;font-size:12px;color:#fff}
+.layout{display:grid;grid-template-columns:235px minmax(0,1fr);gap:22px;padding:25px 20px 35px;align-items:start}nav{position:sticky;top:18px;background:white;border:1px solid var(--line);border-radius:12px;padding:18px 15px}nav strong{display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin:0 0 10px 9px}nav a{display:block;color:#334155;text-decoration:none;padding:7px 9px;border-radius:7px;font-size:13px}nav a:hover{background:var(--sky);color:#1d4ed8}main{min-width:0}section{background:#fff;border:1px solid var(--line);border-radius:12px;padding:25px 28px;margin-bottom:19px;box-shadow:0 2px 8px #0f172a05;scroll-margin-top:18px}h2{font-size:22px;color:var(--navy);line-height:1.3;margin:0 0 14px}h3{font-size:17px;color:#1e40af;margin:24px 0 9px}h4{font-size:14px;color:var(--navy);margin:16px 0 7px}p{margin:10px 0}ul,ol{padding-left:22px}li{margin:5px 0}.lead{font-size:16px;color:#475569}.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}.tile{background:#f8fafc;border:1px solid var(--line);border-radius:9px;padding:14px}.tile strong{display:block;color:var(--navy)}.tile span{color:var(--muted);font-size:13px}
+table{width:100%;border-collapse:collapse;margin:15px 0;font-size:14px}th,td{text-align:left;vertical-align:top;padding:11px 12px;border-bottom:1px solid var(--line)}th{background:#eef4ff;color:var(--navy);font-size:13px}tbody tr:nth-child(even){background:#fbfdff}.tablewrap{overflow-x:auto}code{font-family:Consolas,'Courier New',monospace;font-size:.91em;background:#edf2f8;padding:2px 5px;border-radius:4px;overflow-wrap:anywhere}pre{background:#10243e;color:#e2e8f0;border-radius:9px;padding:17px 18px;overflow-x:auto;line-height:1.6;font-size:13px}pre code{background:none;color:inherit;padding:0;overflow-wrap:normal}.note,.warn,.tip{padding:13px 16px;margin:17px 0;border-radius:0 8px 8px 0}.note{border-left:4px solid var(--blue);background:#eff6ff}.warn{border-left:4px solid var(--orange);background:#fff7ed}.tip{border-left:4px solid var(--green);background:#ecfdf5}.small{font-size:13px;color:var(--muted)}.label{display:inline-block;background:#eaf2ff;color:#1e40af;border-radius:5px;padding:2px 8px;font-size:11px;font-weight:bold;letter-spacing:.3px;text-transform:uppercase}footer{color:var(--muted);padding:0 20px 30px;text-align:center;font-size:13px}.back{display:inline-block;margin-top:12px;font-size:12px}@media(max-width:850px){.layout{grid-template-columns:1fr}nav{position:static;display:flex;flex-wrap:wrap;gap:2px}nav strong{width:100%}nav a{display:inline-block}section{padding:21px 17px}.tiles{grid-template-columns:1fr}}@media print{body{background:#fff;font-size:11pt}header{background:#10243e!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}nav{display:none}.layout{display:block;padding:0}section{border:0;box-shadow:none;border-radius:0;page-break-inside:avoid;padding:15px 0;margin:0}pre,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}a{color:inherit}}
 </style>
 </head>
-<body>
-
-<header><div>
-<h1>HTTP Control</h1>
-<p>Universal Devices IoX / PG3x Node Server — Version 1.4.0</p>
-</div></header>
-
+<body id="top">
+<header><div class="inner"><div class="eyebrow">Universal Devices · eisy · IoX · PG3x</div><h1>HTTP Control</h1><p>Complete configuration, command, response parsing, and troubleshooting guide for the HTTP Control node server.</p><span class="version">Version 1.4.1 · Beta Store · Free</span></div></header>
+<div class="layout">
+<nav aria-label="Guide contents"><strong>Contents</strong><a href="#overview">Overview</a><a href="#install">Installation</a><a href="#parameters">Custom Parameters</a><a href="#methods">HTTP Methods &amp; Bodies</a><a href="#response">Response Extraction</a><a href="#examples">Configuration Examples</a><a href="#polling">Automatic Polling</a><a href="#iox">IoX Nodes &amp; Programs</a><a href="#errors">Errors &amp; Troubleshooting</a><a href="#security">Security &amp; Limitations</a><a href="#reference">Quick Reference</a></nav>
 <main>
-
-<section>
-<h2>Overview</h2>
-<p>HTTP Control allows IoX programs and devices to communicate with
-HTTP-enabled equipment and web services.</p>
-<p>Configure up to 16 independent endpoints, send HTTP requests,
-and expose numeric response values as IoX node drivers.</p>
-</section>
-
-<section>
-<h2>Features</h2>
-<ul>
-<li>GET, POST, PUT, and DELETE requests</li>
-<li>Custom HTTP headers and JSON request bodies</li>
-<li>Eight numeric response fields per endpoint</li>
-<li>Nested JSON and array parsing</li>
-<li>Plain-text numeric responses</li>
-<li>Optional automatic polling for GET requests</li>
-<li>HTTP status, response time, and success reporting</li>
-<li>Previous measurements preserved after failed requests</li>
-</ul>
-</section>
-
-<section>
-<h2>Configuration</h2>
-<p>Open the plugin's Custom Parameters page in PG3x.</p>
-
-<table>
-<tr><th>Parameter</th><th>Description</th></tr>
-<tr><td><code>url1_name</code></td><td>IoX node name</td></tr>
-<tr><td><code>url1_url</code></td><td>HTTP or HTTPS endpoint</td></tr>
-<tr><td><code>url1_method</code></td><td>GET, POST, PUT, DELETE</td></tr>
-<tr><td><code>url1_headers</code></td><td>Optional JSON object containing headers</td></tr>
-<tr><td><code>url1_body</code></td><td>Optional request body</td></tr>
-<tr><td><code>url1_interval</code></td><td>Polling interval in seconds; 0 disables</td></tr>
-<tr><td><code>url1_field1</code> – <code>url1_field8</code></td>
-<td>Response values to extract</td></tr>
-</table>
-
-<p>Repeat with <code>url2_</code> through <code>url16_</code>
-for additional endpoints.</p>
-
-<div class="note">
-Both name and URL are required. Save configuration changes
-and restart the plugin to apply them.
-</div>
-</section>
-
-<section>
-<h2>Example: JSON Response</h2>
-
-<pre><code>url1_name = Temperature Monitor
+<section id="overview"><span class="label">Getting started</span><h2>What HTTP Control Does</h2><p class="lead">HTTP Control lets Universal Devices IoX programs send HTTP requests to devices and services, and exposes numeric response values as ordinary IoX node status fields.</p><div class="tiles"><div class="tile"><strong>16 endpoints</strong><span>Independent URLs, methods, headers, bodies and field mappings</span></div><div class="tile"><strong>4 HTTP methods</strong><span>GET, POST, PUT and DELETE</span></div><div class="tile"><strong>8 values per endpoint</strong><span>Numeric data from JSON or plain-text responses</span></div><div class="tile"><strong>IoX integration</strong><span>Send Request commands, success status and response diagnostics</span></div></div><p>Common applications include querying a temperature sensor, retrieving values from a REST API, triggering a device's HTTP action, or invoking a webhook.</p><div class="note"><strong>Key distinction:</strong> HTTP Control is a configurable HTTP client. It does not host a web server, accept incoming webhooks, or automatically convert arbitrary text responses into IoX text fields.</div></section>
+<section id="install"><h2>Installation &amp; First Setup</h2><ol><li>Open the PG3x interface for your Universal Devices eisy.</li><li>Find <strong>HTTP Control</strong> in the <strong>Beta</strong> Node Server Store and install it into an available slot.</li><li>Open the installed node server's <strong>Custom Parameters</strong> page.</li><li>Add at least <code>url1_name</code> and <code>url1_url</code>; optionally configure the method, response fields, and polling.</li><li>Save the parameters and <strong>restart the node server</strong> to create or update endpoint nodes.</li><li>Open the IoX Admin Console. If the new nodes or profile labels do not appear, fully close and reopen the console.</li><li>Select the endpoint node and use <strong>Send Request</strong> to test it.</li></ol><div class="tip"><strong>First test:</strong> Use a simple GET endpoint that returns a numeric value. The plain-text example below is suitable for verifying the installation.</div><p class="small">Requirements: eisy with PG3x and IoX, plus network connectivity from the eisy to each configured endpoint. The installation script installs the Python dependencies <code>udi-interface</code> and <code>requests</code>.</p></section>
+<section id="parameters"><h2>Custom Parameters</h2><p>Each endpoint uses a numbered prefix, <code>url1_</code> through <code>url16_</code>. For example, the second endpoint uses <code>url2_name</code>, <code>url2_url</code>, and so forth.</p><div class="tablewrap"><table><thead><tr><th>Parameter</th><th>Purpose</th><th>Default / notes</th></tr></thead><tbody><tr><td><code>urlN_name</code></td><td>Name shown on the IoX endpoint node</td><td>Required</td></tr><tr><td><code>urlN_url</code></td><td>Full HTTP or HTTPS destination URL</td><td>Required</td></tr><tr><td><code>urlN_method</code></td><td><code>GET</code>, <code>POST</code>, <code>PUT</code>, or <code>DELETE</code></td><td>Defaults to <code>GET</code>; case-insensitive</td></tr><tr><td><code>urlN_headers</code></td><td>JSON object of HTTP request headers</td><td>Defaults to <code>{}</code></td></tr><tr><td><code>urlN_body</code></td><td>Optional request body</td><td>Valid JSON is sent as JSON; other text as raw data</td></tr><tr><td><code>urlN_interval</code></td><td>Automatic GET polling interval, in seconds</td><td><code>0</code> disables polling</td></tr><tr><td><code>urlN_field1</code> … <code>urlN_field8</code></td><td>JSON property path, or <code>text</code> for numeric plain text</td><td>Optional; unmapped fields are not updated</td></tr></tbody></table></div><p>Replace <code>N</code> with an integer from 1 through 16. A node is created only when both its <code>name</code> and <code>url</code> are present. Its IoX node address is <code>url1</code>, <code>url2</code>, etc.</p><div class="warn"><strong>Configuration changes:</strong> Saving Custom Parameters alone does not rebuild endpoint nodes. Restart the node server after adding, removing, or changing endpoints. Avoid assigning the same number to two endpoints.</div><h3>Entering headers</h3><p>The header value must be a valid JSON object. For example:</p><pre><code>Parameter: url1_headers
+Value:     {"Authorization":"Bearer YOUR_TOKEN","Accept":"application/json"}</code></pre><p>Header names and values must be enclosed in double quotes. A malformed JSON object causes the request to fail before it is sent.</p></section>
+<section id="methods"><h2>HTTP Methods &amp; Request Bodies</h2><div class="tablewrap"><table><thead><tr><th>Method</th><th>Typical use</th><th>Automatic polling?</th></tr></thead><tbody><tr><td><code>GET</code></td><td>Read a device state or query a service</td><td>Yes, when interval &gt; 0</td></tr><tr><td><code>POST</code></td><td>Trigger an action or submit data</td><td>No — Send Request only</td></tr><tr><td><code>PUT</code></td><td>Update or replace a resource</td><td>No — Send Request only</td></tr><tr><td><code>DELETE</code></td><td>Remove a resource or invoke a delete action</td><td>No — Send Request only</td></tr></tbody></table></div><h3>JSON request body</h3><pre><code>url1_method = POST
+url1_headers = {"Content-Type":"application/json"}
+url1_body = {"enabled":true,"level":42}</code></pre><p>If the body contains valid JSON, HTTP Control parses it and passes it to the Python <code>requests</code> library as JSON. A non-JSON body is passed as raw request data instead.</p><h3>Plain-text request body</h3><pre><code>url1_method = POST
+url1_headers = {"Content-Type":"text/plain"}
+url1_body = start</code></pre><div class="note">The request method and body are fixed by the endpoint configuration. The IoX <strong>Send Request</strong> command executes that configured request; it does not prompt for a different URL or body at runtime.</div></section>
+<section id="response"><h2>Reading HTTP Responses</h2><p>On an HTTP success response (status 200–299), HTTP Control attempts to parse JSON and updates any configured response fields that can be converted to numbers.</p><h3>Simple JSON object</h3><p>Response:</p><pre><code>{"temperature":35,"humidity":62}</code></pre><p>Field mappings:</p><pre><code>url1_field1 = temperature
+url1_field2 = humidity</code></pre><p>IoX <strong>Field 1</strong> becomes 35; <strong>Field 2</strong> becomes 62.</p><h3>Nested objects and arrays</h3><p>Response:</p><pre><code>{
+  "sensors": [
+    {"temperature":35.5,"humidity":62},
+    {"temperature":29.0,"humidity":54}
+  ]
+}</code></pre><p>Use dot-separated property names and zero-based array indexes:</p><pre><code>url1_field1 = sensors.0.temperature
+url1_field2 = sensors.1.humidity</code></pre><p>Field 1 becomes 35.5; Field 2 becomes 54. The path starts at the top level of the JSON response; no leading <code>$.</code> is needed.</p><h3>Plain-text numeric response</h3><p>If the response body is simply <code>72.5</code>, use:</p><pre><code>url1_field1 = text</code></pre><p>The reserved mapping <code>text</code> means “use the entire response body,” strip surrounding whitespace, and convert it to a number. It does <strong>not</strong> extract a number from a sentence or HTML page.</p><h3>Numeric conversion rules</h3><ul><li>JSON numbers and numeric strings such as <code>"35.5"</code> are supported.</li><li>JSON booleans convert to 1 (<code>true</code>) or 0 (<code>false</code>).</li><li>Missing keys, invalid indexes, objects, arrays, and nonnumeric text cannot populate numeric fields.</li><li>If one field fails to parse, the plugin logs a warning and retains that field's prior value; other valid fields can still update.</li></ul><div class="warn"><strong>Important:</strong> “Last Request Successful = True” means the HTTP response status was 2xx. It does not guarantee that every configured field was found or parsed correctly.</div></section>
+<section id="examples"><h2>Worked Configuration Examples</h2><p>Enter each line below as a separate <strong>Custom Parameter name and value</strong>. The <code>=</code> separates the name from the value in these examples; do not include it in the parameter name.</p><h3>1. Public test: JSON temperature and humidity</h3><pre><code>url1_name = Temperature Monitor
 url1_url = https://httpbin.org/anything?temperature=35&amp;humidity=62
 url1_method = GET
 url1_field1 = args.temperature
 url1_field2 = args.humidity
-url1_interval = 60</code></pre>
-
-<p>Field 1 displays 35 and Field 2 displays 62.</p>
-
-<p>Nested objects use dot notation. Array indices are numeric,
-for example <code>sensors.0.temperature</code>.</p>
-</section>
-
-<section>
-<h2>Example: Plain-Text Response</h2>
-
-<pre><code>url1_url = https://httpbin.org/base64/NzIuNQ==
-url1_method = GET
-url1_field1 = text</code></pre>
-
-<p>Field 1 displays <strong>72.5</strong>.</p>
-<p>Plain-text responses must contain a numeric value.</p>
-</section>
-
-<section>
-<h2>Example: POST Request</h2>
-
-<pre><code>url1_url = https://httpbin.org/anything
-url1_method = POST
-url1_body = {"temperature":47,"humidity":81}
-url1_field1 = json.temperature
-url1_field2 = json.humidity</code></pre>
-
-<p>Use the IoX <strong>Send Request</strong> command to execute
-the POST request.</p>
-</section>
-
-<section>
-<h2>Automatic Polling</h2>
-
-<p>Set <code>urlN_interval</code> to a positive number of seconds
-to enable automatic polling.</p>
-
-<pre><code>url1_interval = 60</code></pre>
-
-<p>Polling is checked during PG3x Short Poll events, so actual
-request frequency depends on the configured Short Poll interval.</p>
-
-<div class="note">
-<strong>Safety:</strong> Only GET requests are automatically polled.
-POST, PUT, and DELETE requests require explicit commands.
-</div>
-</section>
-
-<section>
-<h2>IoX Commands and Status</h2>
-
-<table>
-<tr><th>Command</th><th>Function</th></tr>
-<tr><td>Send Request</td><td>Executes the configured HTTP request</td></tr>
-<tr><td>Query</td><td>Reports stored values without sending a request</td></tr>
-</table>
-
-<table>
-<tr><th>Status</th><th>Description</th></tr>
-<tr><td>Last Request Successful</td><td>True for HTTP 200–299</td></tr>
-<tr><td>HTTP Status Code</td><td>HTTP response code</td></tr>
-<tr><td>Response Time (ms)</td><td>Request duration</td></tr>
-<tr><td>Fields 1–8</td><td>Extracted numeric response values</td></tr>
-</table>
-
-<p>Invalid or missing response fields retain their previous values.
-HTTP errors do not overwrite previous measurements.</p>
-</section>
-
-<section>
-<h2>Security and Limitations</h2>
-<ul>
-<li>Use HTTPS when available.</li>
-<li>Store API credentials in PG3x configuration, not source code.</li>
-<li>Protect access to PG3x configuration and diagnostic data.</li>
-<li>HTTP requests time out after five seconds.</li>
-<li>Redirects are not followed automatically.</li>
-<li>Response fields currently support numeric values only.</li>
-</ul>
-</section>
-
-</main>
-
-<footer>HTTP Control v1.4.0 — Universal Devices PG3x</footer>
-
+url1_interval = 60</code></pre><p>The test service echoes the URL's query arguments as JSON. Field 1 should read 35 and Field 2 should read 62. This is an example service, not a live sensor.</p><h3>2. Public test: plain-text number</h3><pre><code>url2_name = Plain Text Test
+url2_url = https://httpbin.org/base64/NzIuNQ==
+url2_method = GET
+url2_field1 = text
+url2_interval = 0</code></pre><p>Select the <strong>Plain Text Test</strong> node and issue <strong>Send Request</strong>. Field 1 should read 72.5.</p><h3>3. POST JSON and read the echoed values</h3><pre><code>url3_name = POST Test
+url3_url = https://httpbin.org/anything
+url3_method = POST
+url3_headers = {"Content-Type":"application/json"}
+url3_body = {"temperature":47,"humidity":81}
+url3_field1 = json.temperature
+url3_field2 = json.humidity
+url3_interval = 0</code></pre><p>Issue <strong>Send Request</strong>. The test service echoes the submitted JSON under its <code>json</code> property, so Fields 1 and 2 should read 47 and 81.</p><h3>4. Local device action or webhook</h3><pre><code>url4_name = Patio Device On
+url4_url = http://192.168.1.50/api/power
+url4_method = POST
+url4_headers = {"Content-Type":"application/json"}
+url4_body = {"state":"on"}
+url4_interval = 0</code></pre><p>This is a <strong>template</strong>: replace the example address, path, headers, and body with those required by your actual device. An IoX program can invoke the endpoint's <strong>Send Request</strong> command to trigger the action. If the device returns no numeric data, response fields can remain unconfigured.</p><h3>5. Second sensor on the same API</h3><pre><code>url5_name = Equipment Status
+url5_url = http://192.168.1.60/api/status
+url5_method = GET
+url5_field1 = measurements.temperature
+url5_field2 = measurements.pressure
+url5_interval = 120</code></pre><p>This is also a template. The field paths must match the JSON returned by your device.</p></section>
+<section id="polling"><h2>Automatic Polling</h2><p>For a GET endpoint, set <code>urlN_interval</code> to a positive integer number of seconds. A value of <code>0</code> disables automatic polling.</p><pre><code>url1_method = GET
+url1_interval = 60</code></pre><p>Polling is evaluated on PG3x <strong>Short Poll</strong> events (the supplied node server metadata specifies a 30-second Short Poll). Therefore, the configured interval is a minimum elapsed time, <strong>not</strong> a precise timer. For example, a 45-second interval may not be checked until the next Short Poll.</p><p>Each endpoint tracks the time of its most recent request, including manually triggered requests. Manual requests can therefore shift the next scheduled poll.</p><div class="warn"><strong>Action safety:</strong> POST, PUT, and DELETE are never automatically polled, even if a nonzero interval is entered. Use explicit IoX commands for actions that change device state.</div></section>
+<section id="iox"><h2>IoX Nodes, Status &amp; Programs</h2><p>The node server creates a controller node and up to 16 endpoint nodes. Each configured endpoint has a stable address such as <code>url1</code> and its configured display name.</p><h3>Endpoint commands</h3><div class="tablewrap"><table><thead><tr><th>Command</th><th>Behavior</th></tr></thead><tbody><tr><td><strong>Send Request</strong></td><td>Immediately executes the endpoint's configured HTTP request.</td></tr><tr><td><strong>Query</strong></td><td>Reports the stored IoX driver values; does <strong>not</strong> perform an HTTP request.</td></tr></tbody></table></div><h3>Endpoint status fields</h3><div class="tablewrap"><table><thead><tr><th>IoX display</th><th>Driver</th><th>Meaning</th></tr></thead><tbody><tr><td>Last Request Successful</td><td><code>ST</code></td><td>True for HTTP 2xx, False for an error or unsuccessful HTTP status</td></tr><tr><td>HTTP Status Code</td><td><code>GV1</code></td><td>Most recent received HTTP status code (for example, 200 or 404)</td></tr><tr><td>Response Time (ms)</td><td><code>GV2</code></td><td>Elapsed time for the most recent received HTTP response, in milliseconds</td></tr><tr><td>Field 1 … Field 8</td><td><code>GV3</code> … <code>GV10</code></td><td>Numeric values extracted from configured response paths</td></tr></tbody></table></div><h3>Using a node in an IoX program</h3><p>In the IoX Admin Console, create a program and use the endpoint's <strong>Send Request</strong> command in its <strong>Then</strong> section. For example, a motion or schedule condition could execute the <em>Patio Device On</em> endpoint. To react to returned measurements, add conditions referencing the endpoint's Field 1–8 values.</p><div class="note"><strong>Reliable automation:</strong> When a decision depends on current data, check <strong>Last Request Successful</strong> and account for the age of the last successful measurement. A successful status does not establish that every individual field parsed correctly.</div><h3>What happens after errors?</h3><p>When an HTTP response is received, the HTTP status and response time are updated. An HTTP status outside 200–299 sets Last Request Successful to False and leaves measurement fields unchanged. Connection errors, timeouts, and invalid header configuration set Last Request Successful to False; the code does not reset the prior HTTP status code, response time, or measurements in those cases.</p></section>
+<section id="errors"><h2>Troubleshooting</h2><div class="tablewrap"><table><thead><tr><th>Symptom</th><th>Likely cause / next step</th></tr></thead><tbody><tr><td>Endpoint node missing</td><td>Confirm both <code>urlN_name</code> and <code>urlN_url</code> exist; save parameters, restart the node server, and reopen the Admin Console.</td></tr><tr><td>Last Request Successful = False</td><td>Check the HTTP Status Code and PG3x logs. HTTP 4xx usually indicates a request/authentication problem; 5xx indicates a server-side failure.</td></tr><tr><td>HTTP status still shows an older value</td><td>A connection failure or timeout may not produce an HTTP response, so the old status code can remain visible. Consult the plugin log.</td></tr><tr><td>Field stays at 0 or its previous value</td><td>Confirm the JSON path exactly matches the response, or use <code>text</code> for a plain numeric body. Check logs for “Could not parse field”.</td></tr><tr><td>GET polling does not run</td><td>Confirm <code>urlN_interval</code> is positive, the method is GET, and PG3x Short Poll events are occurring.</td></tr><tr><td>POST / PUT / DELETE does not repeat</td><td>Expected behavior: these methods are command-only. Trigger them using <strong>Send Request</strong>.</td></tr><tr><td>Request times out</td><td>Confirm DNS, routing, firewall rules, port, and reachability from the <em>eisy</em> itself. The request timeout is five seconds.</td></tr><tr><td>HTTP 301 / 302 response</td><td>Redirects are not followed. Configure the final URL directly.</td></tr><tr><td>Invalid headers error</td><td><code>urlN_headers</code> must be a JSON object, e.g. <code>{"Accept":"application/json"}</code>.</td></tr><tr><td>Unexpected or old node labels</td><td>Close and reopen the IoX Admin Console to reload the profile.</td></tr></tbody></table></div><h3>Useful diagnostic sequence</h3><ol><li>Temporarily test the endpoint with a known working GET URL.</li><li>Issue <strong>Send Request</strong> manually.</li><li>Check Last Request Successful, HTTP Status Code, and Response Time.</li><li>Check the node server's PG3x log for request failures or field parsing warnings.</li><li>Restore your target URL and add response-field mappings one at a time.</li></ol></section>
+<section id="security"><h2>Security &amp; Current Limitations</h2><ul><li><strong>Prefer HTTPS.</strong> Plain HTTP can expose request data and credentials on the network.</li><li><strong>Protect API tokens.</strong> Custom Parameters and plugin logs should be accessible only to trusted administrators. Do not put credentials in public GitHub commits or shared screenshots.</li><li><strong>Limit device permissions.</strong> Use narrowly scoped tokens and avoid configuring destructive DELETE endpoints unless needed.</li><li><strong>Timeout:</strong> each HTTP request uses a five-second timeout.</li><li><strong>No redirect following:</strong> configure the final URL instead of relying on 301/302 responses.</li><li><strong>Numeric fields only:</strong> response mappings populate numeric IoX drivers; arbitrary strings cannot be displayed in those fields.</li><li><strong>No dynamic command payloads:</strong> request URL, method, headers, and body come from saved Custom Parameters.</li><li><strong>Polling is approximate:</strong> it depends on the PG3x Short Poll cadence, not a separate per-endpoint scheduler.</li></ul><div class="note">This plugin initiates outbound requests from the eisy. It does not require opening an inbound port on your router for normal use.</div></section>
+<section id="reference"><h2>Quick Reference</h2><div class="tablewrap"><table><thead><tr><th>Setting / behavior</th><th>Value</th></tr></thead><tbody><tr><td>Endpoint count</td><td>Up to 16 (<code>url1_</code> … <code>url16_</code>)</td></tr><tr><td>Required per endpoint</td><td><code>urlN_name</code>, <code>urlN_url</code></td></tr><tr><td>Supported methods</td><td>GET, POST, PUT, DELETE</td></tr><tr><td>Automatic polling</td><td>GET only, <code>urlN_interval</code> &gt; 0</td></tr><tr><td>Numeric response fields</td><td>8 per endpoint</td></tr><tr><td>JSON paths</td><td>Dot notation, numeric zero-based array indexes</td></tr><tr><td>Plain-text number</td><td>Set a field mapping to <code>text</code></td></tr><tr><td>Success definition</td><td>HTTP 200–299</td></tr><tr><td>Request timeout</td><td>5 seconds</td></tr><tr><td>Redirect handling</td><td>Disabled</td></tr><tr><td>Configuration changes</td><td>Save and restart node server</td></tr></tbody></table></div><p><strong>Project:</strong> <a href="https://github.com/lovintexas/udi-http-control">github.com/lovintexas/udi-http-control</a><br><strong>License:</strong> MIT<br><strong>Documented release:</strong> 1.4.1</p><a class="back" href="#top">↑ Back to top</a></section>
+</main></div><footer><div class="inner">HTTP Control v1.4.1 · PG3x Node Server Guide · Universal Devices eisy / IoX</div></footer>
 </body>
 </html>
