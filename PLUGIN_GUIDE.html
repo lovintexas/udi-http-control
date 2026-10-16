@@ -95,6 +95,44 @@ Before either condition matches, the state is Unknown.</p>
 
 <p>If both conditions match, no event is generated.
 Failed HTTP requests and invalid fields do not trigger scenes.</p>
+
+<h3>Scene Controller Parameters</h3>
+<div class="tablewrap">
+<table>
+<thead><tr><th>Parameter</th><th>Purpose</th><th>Default</th></tr></thead>
+<tbody>
+<tr><td>fieldX_controller</td><td>Enable controller</td><td>false</td></tr>
+<tr><td>fieldX_on</td><td>ON threshold</td><td>1</td></tr>
+<tr><td>fieldX_on_operator</td><td>ON comparison</td><td>==</td></tr>
+<tr><td>fieldX_off</td><td>OFF threshold</td><td>0</td></tr>
+<tr><td>fieldX_off_operator</td><td>OFF comparison</td><td>==</td></tr>
+</tbody></table></div>
+
+<p>Use the endpoint prefix urlN_ and field number X (1-8).
+For example: <code>url2_field3_on</code>.</p>
+
+<h3>Hysteresis Example</h3>
+<p>With ON &gt;= 75 and OFF &lt;= 70:</p>
+<ul>
+<li>75 or higher: ON</li>
+<li>70 or lower: OFF</li>
+<li>Between 70 and 75: retain previous state</li>
+</ul>
+
+<h3>IoX Scene Setup</h3>
+<ol>
+<li>Enable the desired field controller in Custom Parameters.</li>
+<li>Save the parameters and restart the node server.</li>
+<li>Reopen the IoX Admin Console if necessary.</li>
+<li>Add the new Field controller node to an IoX scene as Controller.</li>
+<li>Configure the scene responders.</li>
+</ol>
+
+<div class="note">
+<strong>Important:</strong> A scene event is sent on the first
+matching reading after startup and whenever the state changes.
+Repeated readings in the same state do not resend the event.
+</div>
 </section>
 <section id="iox"><h2>IoX Nodes, Status &amp; Programs</h2><p>The node server creates a controller node and up to 16 endpoint nodes. Each configured endpoint has a stable address such as <code>url1</code> and its configured display name.</p><h3>Endpoint commands</h3><div class="tablewrap"><table><thead><tr><th>Command</th><th>Behavior</th></tr></thead><tbody><tr><td><strong>Send Request</strong></td><td>Immediately executes the endpoint's configured HTTP request.</td></tr><tr><td><strong>Query</strong></td><td>Reports the stored IoX driver values; does <strong>not</strong> perform an HTTP request.</td></tr></tbody></table></div><h3>Endpoint status fields</h3><div class="tablewrap"><table><thead><tr><th>IoX display</th><th>Driver</th><th>Meaning</th></tr></thead><tbody><tr><td>Last Request Successful</td><td><code>ST</code></td><td>True for HTTP 2xx, False for an error or unsuccessful HTTP status</td></tr><tr><td>HTTP Status Code</td><td><code>GV1</code></td><td>Most recent received HTTP status code (for example, 200 or 404)</td></tr><tr><td>Response Time (ms)</td><td><code>GV2</code></td><td>Elapsed time for the most recent received HTTP response, in milliseconds</td></tr><tr><td>Field 1 … Field 8</td><td><code>GV3</code> … <code>GV10</code></td><td>Numeric values extracted from configured response paths</td></tr></tbody></table></div><h3>Using a node in an IoX program</h3><p>In the IoX Admin Console, create a program and use the endpoint's <strong>Send Request</strong> command in its <strong>Then</strong> section. For example, a motion or schedule condition could execute the <em>Patio Device On</em> endpoint. To react to returned measurements, add conditions referencing the endpoint's Field 1–8 values.</p><div class="note"><strong>Reliable automation:</strong> When a decision depends on current data, check <strong>Last Request Successful</strong> and account for the age of the last successful measurement. A successful status does not establish that every individual field parsed correctly.</div><h3>What happens after errors?</h3><p>When an HTTP response is received, the HTTP status and response time are updated. An HTTP status outside 200–299 sets Last Request Successful to False and leaves measurement fields unchanged. Connection errors, timeouts, and invalid header configuration set Last Request Successful to False; the code does not reset the prior HTTP status code, response time, or measurements in those cases.</p></section>
 <section id="errors"><h2>Troubleshooting</h2><div class="tablewrap"><table><thead><tr><th>Symptom</th><th>Likely cause / next step</th></tr></thead><tbody><tr><td>Endpoint node missing</td><td>Confirm both <code>urlN_name</code> and <code>urlN_url</code> exist; save parameters, restart the node server, and reopen the Admin Console.</td></tr><tr><td>Last Request Successful = False</td><td>Check the HTTP Status Code and PG3x logs. HTTP 4xx usually indicates a request/authentication problem; 5xx indicates a server-side failure.</td></tr><tr><td>HTTP status still shows an older value</td><td>A connection failure or timeout may not produce an HTTP response, so the old status code can remain visible. Consult the plugin log.</td></tr><tr><td>Field stays at 0 or its previous value</td><td>Confirm the JSON path exactly matches the response, or use <code>text</code> for a plain numeric body. Check logs for “Could not parse field”.</td></tr><tr><td>GET polling does not run</td><td>Confirm <code>urlN_interval</code> is positive, the method is GET, and PG3x Short Poll events are occurring.</td></tr><tr><td>POST / PUT / DELETE does not repeat</td><td>Expected behavior: these methods are command-only. Trigger them using <strong>Send Request</strong>.</td></tr><tr><td>Request times out</td><td>Confirm DNS, routing, firewall rules, port, and reachability from the <em>eisy</em> itself. The request timeout is five seconds.</td></tr><tr><td>HTTP 301 / 302 response</td><td>Redirects are not followed. Configure the final URL directly.</td></tr><tr><td>Invalid headers error</td><td><code>urlN_headers</code> must be a JSON object, e.g. <code>{"Accept":"application/json"}</code>.</td></tr><tr><td>Unexpected or old node labels</td><td>Close and reopen the IoX Admin Console to reload the profile.</td></tr></tbody></table></div><h3>Useful diagnostic sequence</h3><ol><li>Temporarily test the endpoint with a known working GET URL.</li><li>Issue <strong>Send Request</strong> manually.</li><li>Check Last Request Successful, HTTP Status Code, and Response Time.</li><li>Check the node server's PG3x log for request failures or field parsing warnings.</li><li>Restore your target URL and add response-field mappings one at a time.</li></ol></section>
