@@ -38,6 +38,46 @@ Both `urlN_name` and `urlN_url` are required to create an endpoint.
 
 Save changes and restart the node server after changing configuration.
 
+## HTTPS & Authentication
+
+HTTP Control accepts HTTP and HTTPS URLs. For HTTPS, use `https://` in `urlN_url`. The server must present a certificate trusted by the eisy, with a hostname matching the URL.
+
+### Username and password (HTTP Basic Authentication)
+
+If the API uses **HTTP Basic Authentication**, encode `username:password` as Base64. On the eisy, run:
+
+```bash
+printf '%s' 'admin:mypassword' | base64 | tr -d '\n'
+```
+
+The example produces `YWRtaW46bXlwYXNzd29yZA==`. Replace the sample credentials with your own. Configure **each line as a separate PG3x Custom Parameter** (the `=` signs below are separators, not part of the names):
+
+```text
+url1_name = Secure Device
+url1_url = https://device.example.com/api/status
+url1_method = GET
+url1_headers = {"Authorization":"Basic YWRtaW46bXlwYXNzd29yZA=="}
+url1_interval = 0
+```
+
+For your own account, use `{"Authorization":"Basic YOUR_BASE64_VALUE"}` as the **value** of `url1_headers`. Enter it as ordinary JSON, without extra escaping or enclosing quotes. Use the matching `urlN_` prefix for other endpoints. Set response-field mappings only if you need numeric values from the reply.
+
+### Other API authentication headers
+
+- Bearer token: `{"Authorization":"Bearer YOUR_TOKEN"}`
+- API key (if specified by the API): `{"X-API-Key":"YOUR_API_KEY"}`
+- No authentication: `{}`
+
+These are header-based examples, **not** automatic Digest authentication or web-form/session login. Check the target API documentation for its required authentication scheme.
+
+### Certificates, errors, and security
+
+HTTPS certificate verification is normally enabled. Self-signed, expired, untrusted, or hostname-mismatched certificates may cause SSL verification errors; the documented configuration has no per-endpoint certificate-verification switch. Prefer installing/trusting the appropriate certificate or using a valid certificate rather than disabling verification.
+
+An HTTP **401** generally means missing/invalid credentials; **403** means access is forbidden. A TLS certificate error happens before an HTTP status is received; check PG3x logs. Base64 is **encoding, not encryption**. HTTPS encrypts credentials in transit, but credentials in PG3x Custom Parameters may be visible to administrators. Never publish actual credentials or Authorization headers.
+
+Save the Custom Parameters and restart the node server after changing endpoint configuration.
+
 ## Example: JSON Response
 
 URL:
