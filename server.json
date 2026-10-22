@@ -4,7 +4,7 @@
   "type": "python3",
   "executable": "http_control.py",
   "description": "Send HTTP requests and expose response values to IoX",
-  "notice": "Configure endpoints using PG3x Custom Parameters",
+  "notice": "Configure endpoints using the HTTPS web editor or PG3x Custom Parameters",
   "shortPoll": 30,
   "longPoll": 300
 }
