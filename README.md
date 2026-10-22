@@ -36,7 +36,7 @@ Each endpoint uses a numbered prefix, such as `url1_`, `url2_`, etc.
 
 Both `urlN_name` and `urlN_url` are required to create an endpoint.
 
-Save changes and restart the node server after changing configuration.
+When using the web editor, click Save Configuration to apply endpoint, response-field, and scene-controller changes immediately. Changes made through PG3x Custom Parameters require restarting the node server.
 
 ## HTTPS & Authentication
 
@@ -184,9 +184,20 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.5.0
+1.5.1
 
-## HTTP Scene Controllers (v1.5.0)
+## Release Notes — 1.5.1
+
+- Add a web-based configuration editor with authenticated HTTPS access.
+- Save and load endpoint configuration persistently.
+- Apply endpoint settings, response-field paths, and scene-controller
+  thresholds and operators without restarting the node server.
+- Create newly configured endpoint and scene-controller nodes live.
+- Disabled scene controllers display Unknown and retain their existing
+  IoX node addresses.
+- Clear unconfigured response-field values when saving.
+
+## HTTP Scene Controllers (v1.5.1)
 
 Each HTTP endpoint supports up to eight optional scene-controller nodes,
 one for each numeric response field.

@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>HTTP Control — Endpoint Editor</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f5f9;color:#1e293b;font:14px system-ui,Arial,sans-serif}header{background:linear-gradient(135deg,#17365d,#245b91);color:white;padding:22px 30px}header h1{margin:0;font-size:26px}header p{margin:6px 0 0;color:#dbeafe}.layout{display:grid;grid-template-columns:220px minmax(0,1fr);gap:20px;max-width:1250px;margin:24px auto;padding:0 20px}.panel{background:#fff;border:1px solid #dbe3ec;border-radius:10px;padding:20px}.sidebar{align-self:start}.sidebar h2{margin-top:0;font-size:17px}.endpoint{display:block;width:100%;padding:11px;margin:4px 0;text-align:left;border:1px solid #dbe3ec;border-radius:6px;background:white;cursor:pointer}.endpoint.active{background:#dbeafe;border-color:#2563eb;font-weight:bold}h2{color:#17365d;font-size:19px}h3{margin-top:25px;color:#24415f}label{display:block;margin:12px 0 5px;font-weight:600}input,select,textarea{width:100%;padding:9px;border:1px solid #cbd5e1;border-radius:6px;font:inherit}textarea{min-height:75px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.field{border:1px solid #e2e8f0;border-radius:8px;padding:14px;margin:12px 0}.field h4{margin:0 0 10px}.checkbox{display:flex;align-items:center;gap:8px;margin:12px 0}.checkbox input{width:auto}.actions{display:flex;gap:10px;margin-top:24px}button.action{padding:11px 18px;border:0;border-radius:6px;background:#2563a6;color:white;cursor:pointer}button:disabled{opacity:.45;cursor:not-allowed}.notice{padding:12px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;margin-bottom:20px}.muted{color:#64748b;font-size:12px}@media(max-width:750px){.layout{grid-template-columns:1fr}.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>HTTP Control</h1><p>Endpoint Configuration</p></header>
+<div class="layout"><aside class="panel sidebar"><h2>Endpoints</h2><div id="endpointList"></div></aside><main class="panel">
+<div class="notice"><strong>Configuration editor.</strong> Changes are saved to HTTP Control when you click Save Configuration. Request settings, response-field paths, and scene-controller settings update immediately without restarting the node server.</div>
+<h2 id="heading">Endpoint 1</h2><div class="grid"><div><label for="name">Name</label><input id="name" placeholder="Living Room Sensor"></div><div><label for="method">HTTP method</label><select id="method"><option>GET</option><option>POST</option><option>PUT</option><option>DELETE</option></select></div></div>
+<label for="url">URL</label><input id="url" placeholder="https://example.com/api">
+<div class="grid"><div><label for="interval">Polling interval (seconds)</label><input id="interval" type="number" min="0" step="1" value="0"></div></div>
+<label for="headers">HTTP headers (JSON object)</label><textarea id="headers" placeholder='{"Authorization":"Bearer token"}'></textarea>
+<label for="body">Request body</label><textarea id="body" placeholder='{"power":true}'></textarea>
+<h3>Response fields and scene controllers</h3><p class="muted">Select JSON or Plain Text for each response field.</p><div id="fields"></div>
+<div class="actions"><button class="action" id="saveButton" type="button">Save Configuration</button></div>
+</main></div>
+<script>
+'use strict';
+const configs=Array.from({length:16},()=>({fields:{}}));let selected=0;
+const $=id=>document.getElementById(id);
+function operators(){return ['==','!=','>','>=','<','<='].map(op=>`<option value="${op}">${op.replace('<','&lt;')}</option>`).join('')}
+function fieldHTML(i){return `<section class="field"><h4>Field ${i}</h4><label for="type${i}">Response type</label><select id="type${i}"><option value="json">JSON</option><option value="text">Plain Text</option></select><div id="pathrow${i}"><label for="field${i}">JSON path</label><input id="field${i}" placeholder="sensor.temperature"></div><label class="checkbox"><input type="checkbox" id="controller${i}"> Enable scene controller</label><div class="grid"><div><label for="onop${i}">ON operator</label><select id="onop${i}">${operators()}</select><label for="on${i}">ON value</label><input id="on${i}" type="number" step="any" value="1"></div><div><label for="offop${i}">OFF operator</label><select id="offop${i}">${operators()}</select><label for="off${i}">OFF value</label><input id="off${i}" type="number" step="any" value="0"></div></div></section>`}
+$('fields').innerHTML=Array.from({length:8},(_,i)=>fieldHTML(i+1)).join('');
+function saveCurrent(){const c=configs[selected];for(const key of ['name','url','method','interval','headers','body'])c[key]=$(key).value;for(let i=1;i<=8;i++)c.fields[i]={path:$(`type${i}`).value==='text'?'text':$(`field${i}`).value,controller:$(`controller${i}`).checked,on_operator:$(`onop${i}`).value,on:$(`on${i}`).value,off_operator:$(`offop${i}`).value,off:$(`off${i}`).value}}
+function loadCurrent(){const c=configs[selected];$('heading').textContent=`Endpoint ${selected+1}`;for(const key of ['name','url','method','interval','headers','body'])$(key).value=c[key]??(key==='method'?'GET':key==='interval'?'0':'');for(let i=1;i<=8;i++){const f=c.fields[i]||{};$(`type${i}`).value=f.path==='text'?'text':'json';$(`field${i}`).value=f.path==='text'?'':(f.path||'');updateFieldType(i);$(`controller${i}`).checked=!!f.controller;$(`onop${i}`).value=f.on_operator||'==';$(`offop${i}`).value=f.off_operator||'==';$(`on${i}`).value=f.on??'1';$(`off${i}`).value=f.off??'0'}renderList()}
+function updateFieldType(i){
+  const plain=$(`type${i}`).value==='text';
+  $(`pathrow${i}`).hidden=plain;
+}
+for(let i=1;i<=8;i++){
+  $(`type${i}`).addEventListener('change',()=>updateFieldType(i));
+}
+function renderList(){$('endpointList').replaceChildren(...configs.map((c,i)=>{const b=document.createElement('button');b.type='button';b.className='endpoint'+(i===selected?' active':'');b.textContent=`${i+1}. ${c.name||'Not configured'}`;b.addEventListener('click',()=>selectEndpoint(i));return b}))}
+function selectEndpoint(i){saveCurrent();selected=i;loadCurrent()}
+$('name').addEventListener('input',()=>{configs[selected].name=$('name').value;renderList()});
+fetch('/api/config')
+  .then(response => {
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    return response.json();
+  })
+  .then(data => {
+    data.forEach((config, i) => {
+      if (i < configs.length) configs[i] = config;
+    });
+    loadCurrent();
+  })
+  .catch(error => console.error('Configuration load failed:', error));
+
+$('saveButton').addEventListener('click', async () => {
+  saveCurrent();
+  if (!confirm('Save configuration? URL, method, headers, body, polling, response fields, and scene controllers apply immediately without a restart.')) return;
+  try {
+    const response = await fetch('/api/config', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(configs)
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    alert('Configuration saved. Endpoint settings, response fields, and scene controllers updated immediately.');
+  } catch (error) {
+    alert('Save failed: ' + error.message);
+  }
+});
+</script></body></html>
