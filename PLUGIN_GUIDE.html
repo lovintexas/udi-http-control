@@ -23,6 +23,18 @@ table{width:100%;border-collapse:collapse;margin:15px 0;font-size:14px}th,td{tex
 <section id="parameters"><h2>Custom Parameters</h2><p>Each endpoint uses a numbered prefix, <code>url1_</code> through <code>url16_</code>. For example, the second endpoint uses <code>url2_name</code>, <code>url2_url</code>, and so forth.</p><div class="tablewrap"><table><thead><tr><th>Parameter</th><th>Purpose</th><th>Default / notes</th></tr></thead><tbody><tr><td><code>urlN_name</code></td><td>Name shown on the IoX endpoint node</td><td>Required</td></tr><tr><td><code>urlN_url</code></td><td>Full HTTP or HTTPS destination URL</td><td>Required</td></tr><tr><td><code>urlN_method</code></td><td><code>GET</code>, <code>POST</code>, <code>PUT</code>, or <code>DELETE</code></td><td>Defaults to <code>GET</code>; case-insensitive</td></tr><tr><td><code>urlN_headers</code></td><td>JSON object of HTTP request headers</td><td>Defaults to <code>{}</code></td></tr><tr><td><code>urlN_body</code></td><td>Optional request body</td><td>Valid JSON is sent as JSON; other text as raw data</td></tr><tr><td><code>urlN_interval</code></td><td>Automatic GET polling interval, in seconds</td><td><code>0</code> disables polling</td></tr><tr><td><code>urlN_field1</code> … <code>urlN_field8</code></td><td>JSON property path, or <code>text</code> for numeric plain text</td><td>Optional; unmapped fields are not updated</td></tr></tbody></table></div><p>Replace <code>N</code> with an integer from 1 through 16. A node is created only when both its <code>name</code> and <code>url</code> are present. Its IoX node address is <code>url1</code>, <code>url2</code>, etc.</p><div class="warn"><strong>Configuration changes:</strong> When using PG3x Custom Parameters, save the parameters and restart the node server after adding, removing, or changing endpoints. When using the web editor, click <strong>Save Configuration</strong>; endpoint settings, response paths, and scene-controller settings apply live. Avoid assigning the same number to two endpoints.</div><h3>Entering headers</h3><p>The header value must be a valid JSON object. For example:</p><pre><code>Parameter: url1_headers
 Value:     {"Authorization":"Bearer YOUR_TOKEN","Accept":"application/json"}</code></pre><p>Header names and values must be enclosed in double quotes. A malformed JSON object causes the request to fail before it is sent.</p></section>
 
+<section id="configprecedence">
+<h2>Configuration Precedence</h2>
+<p>HTTP Control supports configuration through either PG3x Custom Parameters or the HTTPS web editor.</p>
+<ul>
+<li><strong>First-time use:</strong> If no saved web configuration exists, the editor automatically imports existing PG3x Custom Parameters.</li>
+<li><strong>After saving in the web editor:</strong> Configuration is saved to <code>data/endpoints.json</code> and takes precedence over PG3x Custom Parameters.</li>
+<li><strong>After restarting:</strong> The saved web configuration is loaded automatically. Changes made only in PG3x Custom Parameters will not override it.</li>
+<li><strong>Returning to manual configuration:</strong> Remove <code>data/endpoints.json</code> and restart the node server. Existing PG3x Custom Parameters will become active again.</li>
+</ul>
+<p><strong>Important:</strong> The two configuration methods do not synchronize automatically. Once you begin saving through the web editor, continue making changes there unless you intentionally switch back to PG3x Custom Parameters.</p>
+</section>
+
 <section id="webpassword">
 <h2>Web Editor Password Management</h2>
 

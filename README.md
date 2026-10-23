@@ -38,6 +38,17 @@ Both `urlN_name` and `urlN_url` are required to create an endpoint.
 
 When using the web editor, click Save Configuration to apply endpoint, response-field, and scene-controller changes immediately. Changes made through PG3x Custom Parameters require restarting the node server.
 
+## Configuration Precedence
+
+HTTP Control supports configuration through either PG3x Custom Parameters or the HTTPS web editor.
+
+- **First-time use:** If no saved web configuration exists, the editor automatically imports existing PG3x Custom Parameters. Previously configured endpoints appear in the editor.
+- **After saving in the web editor:** The configuration is saved to `data/endpoints.json` and takes precedence over PG3x Custom Parameters.
+- **After restarting the node server:** The saved web configuration is loaded automatically. Changes made only in PG3x Custom Parameters will not override it.
+- **Returning to manual configuration:** Remove `data/endpoints.json` and restart the node server. The existing PG3x Custom Parameters will become active again.
+
+**Important:** The two configuration methods do not synchronize automatically. Once you begin saving through the web editor, continue making configuration changes there unless you intentionally switch back to PG3x Custom Parameters.
+
 ## Web Editor Password Management
 
 Open the HTTPS configuration editor at:
