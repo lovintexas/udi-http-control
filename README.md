@@ -38,6 +38,54 @@ Both `urlN_name` and `urlN_url` are required to create an endpoint.
 
 When using the web editor, click Save Configuration to apply endpoint, response-field, and scene-controller changes immediately. Changes made through PG3x Custom Parameters require restarting the node server.
 
+## Web Editor Password Management
+
+Open the HTTPS configuration editor at:
+
+`https://EISY_IP:8766/editor`
+
+Replace `EISY_IP` with your eisy's IP address.
+
+On first installation, create an administrator password of at
+least 12 characters. The editor uses HTTP Basic Authentication
+with username `admin`.
+
+The locally generated HTTPS certificate is self-signed, so your
+browser may initially display a certificate warning.
+
+### Change Password
+
+Open the configuration editor and click **Change Password**
+next to **Save Configuration**.
+
+Alternatively, open:
+
+`https://EISY_IP:8766/auth`
+
+Enter your current password and choose a new password.
+
+### Forgotten Password
+
+Connect to the eisy using SSH and run:
+
+    cd ~/http-control
+    python3 http_control_auth.py reset
+
+The command generates a temporary recovery code.
+
+Open `https://EISY_IP:8766/auth`, select password recovery,
+and enter the code and your new password.
+
+Recovery codes expire after 15 minutes, allow five incorrect
+attempts, and can only be used once. Generating a code does
+not invalidate the existing password.
+
+Keep recovery codes private. Browser-cached credentials may
+require opening a new private browsing window after a change.
+
+The web editor password is separate from credentials used
+for outgoing HTTP requests.
+
 ## HTTPS & Authentication
 
 HTTP Control accepts HTTP and HTTPS URLs. For HTTPS, use `https://` in `urlN_url`. The server must present a certificate trusted by the eisy, with a hostname matching the URL.
@@ -184,7 +232,16 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.5.1
+1.5.2
+
+## Release Notes — 1.5.2
+
+- First-time administrator password setup through HTTPS.
+- Change Password button in the web configuration editor.
+- Password recovery using a code generated through SSH.
+- Recovery codes expire after 15 minutes.
+- Five incorrect attempts invalidate a recovery code.
+- Recovery codes are single-use.
 
 ## Release Notes — 1.5.1
 
