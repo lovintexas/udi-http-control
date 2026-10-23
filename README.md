@@ -18,6 +18,23 @@ Designed for eisy and PG3x.
 - Success status displayed as True or False
 - Previous measurements retained when requests fail
 
+## Installation & First-Time Setup
+
+**The HTTPS web editor is the recommended configuration method.**
+
+1. Install HTTP Control from the PG3x **Production Store**.
+2. Start the node server.
+3. Open `https://EISY_IP:8766/auth`, replacing `EISY_IP` with your eisy's IP address.
+4. Create an administrator password containing at least 12 characters.
+5. Open `https://EISY_IP:8766/editor` and sign in with username `admin` and your new password.
+6. Configure your HTTP endpoints, request methods, response fields, and optional scene controllers.
+7. Click **Save Configuration** to apply the settings immediately.
+8. Open the IoX Admin Console and test an endpoint using **Send Request**.
+
+**Note:** The HTTPS server uses a self-signed certificate, so your browser may display a security warning on first connection.
+
+PG3x Custom Parameters remain supported as an alternative configuration method. Existing Custom Parameters are automatically imported into the web editor when no saved web configuration exists.
+
 ## Configuration
 
 Configure endpoints through PG3x Custom Parameters.
