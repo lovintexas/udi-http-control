@@ -2,6 +2,8 @@
 from pathlib import Path
 
 import json
+import re
+import xml.etree.ElementTree as ET
 import operator
 import time
 import requests
@@ -261,6 +263,20 @@ class HttpEndpoint(udi_interface.Node):
                 try:
                     if key.strip().lower() == "text":
                         value = response.text.strip()
+                    elif key.lower().startswith("xml:"):
+                        root = ET.fromstring(response.content)
+                        path = key[4:].strip().replace(".", "/")
+                        element = root.find(path)
+                        if element is None:
+                            raise ValueError("XML path not found")
+                        value = element.text or ""
+                        match = re.search(
+                            r"[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?",
+                            value
+                        )
+                        if not match:
+                            raise ValueError("No numeric XML value")
+                        value = match.group()
                     else:
                         value = data
 
@@ -288,7 +304,8 @@ class HttpEndpoint(udi_interface.Node):
                     KeyError,
                     IndexError,
                     TypeError,
-                    ValueError
+                    ValueError,
+                    ET.ParseError
                 ):
                     LOGGER.warning(
                         "%s: Could not parse field %s",
