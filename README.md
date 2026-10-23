@@ -154,6 +154,40 @@ An HTTP **401** generally means missing/invalid credentials; **403** means acces
 
 Save the Custom Parameters and restart the node server after changing endpoint configuration.
 
+
+## Example: XML Response — CAI WebControl
+
+HTTP Control supports XML responses with numeric extraction.
+
+Example response:
+
+    <response>
+      <ts1>71.6 F</ts1>
+      <op1>0</op1>
+    </response>
+
+Configure the web editor:
+
+- Response type: XML
+- XML path: ts1
+- Result in IoX Field 1: 71.6
+
+For PG3x Custom Parameters, enter:
+
+    urlN_field1 = xml:ts1
+    urlN_field2 = xml:op1
+
+Nested paths support dot notation or forward slashes.
+
+XML parsing extracts the first numeric value, including signed
+decimals and scientific notation. Units are not converted.
+
+For HTTP Basic Authentication, use a JSON headers object:
+
+    {"Authorization":"Basic YOUR_BASE64_VALUE"}
+
+Base64 is not encryption. Prefer HTTPS when available.
+
 ## Example: JSON Response
 
 URL:
@@ -261,6 +295,15 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 ## Version
 
 1.5.2
+
+## Unreleased — XML Response Support
+
+- Added XML as a third response type.
+- Added XML path extraction using the `xml:` prefix.
+- Added numeric extraction from XML values containing units.
+- Added support for nested XML paths.
+- Preserved existing JSON and Plain Text behavior.
+- Tested with an authenticated CAI WebControl board.
 
 ## Release Notes — 1.5.2
 
