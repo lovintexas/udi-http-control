@@ -649,7 +649,7 @@ def stop_handler():
 if __name__ == "__main__":
     try:
         polyglot = udi_interface.Interface([])
-        polyglot.start("1.5.1")
+        polyglot.start("1.5.2")
 
         polyglot.subscribe(
             polyglot.CUSTOMPARAMS,
