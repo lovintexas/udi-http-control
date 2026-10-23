@@ -294,9 +294,9 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.5.2
+1.5.3
 
-## Unreleased — XML Response Support
+## Release Notes — 1.5.3
 
 - Added XML as a third response type.
 - Added XML path extraction using the `xml:` prefix.
