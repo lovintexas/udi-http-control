@@ -76,8 +76,17 @@ Open the HTTPS configuration editor at:
 Replace `EISY_IP` with your eisy's IP address.
 
 On first installation, create an administrator password of at
-least 12 characters. The editor uses HTTP Basic Authentication
-with username `admin`.
+least 12 characters.
+
+The editor uses a dedicated HTTPS login page with server-managed
+sessions instead of HTTP Basic Authentication.
+
+- Sessions expire after 60 minutes without an authenticated request.
+- Use **Log Out** to end a session immediately.
+- Password changes and recovery invalidate all existing sessions.
+- Login attempts are rate-limited to discourage password guessing.
+- The login page displays username `admin`; authentication uses the
+  administrator password.
 
 The locally generated HTTPS certificate is self-signed, so your
 browser may initially display a certificate warning.
@@ -295,7 +304,7 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.6.0
+1.6.1
 
 ## Release Notes — 1.6.1
 
