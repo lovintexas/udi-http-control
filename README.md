@@ -297,6 +297,16 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 1.6.0
 
+## Release Notes — 1.6.1
+
+- Replaced browser HTTP Basic Authentication with a dedicated administrator login page.
+- Added secure, server-managed login sessions with a 60-minute inactivity timeout.
+- Added explicit logout and session invalidation after password changes or recovery.
+- Added login attempt rate limiting and same-origin checks for authenticated requests.
+- Preserved administrator password setup and SSH-assisted password recovery.
+- Added browser password-manager autocomplete fields to the login page.
+- No changes to endpoint configuration or device control behavior.
+
 ## Release Notes — 1.6.0
 
 - Made eisy-ui custom parameters the single source of configuration.

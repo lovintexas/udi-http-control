@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
 import ssl
 from http_control_tls import ensure_certificate
+from http_control_sessions import (
+    create_session,
+    validate_session,
+    destroy_session,
+    destroy_all_sessions,
+    login_allowed,
+    record_login_failure,
+    clear_login_failures,
+)
 from http_control_auth import (
-    check_authorization,
+    check_password,
     read_credentials,
     create_initial_password,
     change_password,
@@ -211,17 +220,53 @@ def read_eisy_customparams():
 class HttpControlWebHandler(BaseHTTPRequestHandler):
     controller = None
 
+    SESSION_COOKIE = "http_control_session"
+
+    def session_token(self):
+        from http.cookies import SimpleCookie
+
+        cookie = SimpleCookie()
+        try:
+            cookie.load(self.headers.get("Cookie", ""))
+            item = cookie.get(self.SESSION_COOKIE)
+            return item.value if item else None
+        except Exception:
+            return None
+
+    def set_session_cookie(self, token):
+        self.send_header(
+            "Set-Cookie",
+            f"{self.SESSION_COOKIE}={token}; "
+            "Path=/; Secure; HttpOnly; SameSite=Strict"
+        )
+
+    def clear_session_cookie(self):
+        self.send_header(
+            "Set-Cookie",
+            f"{self.SESSION_COOKIE}=; Path=/; "
+            "Max-Age=0; Secure; HttpOnly; SameSite=Strict"
+        )
+
+
     def is_authenticated(self):
-        with AUTH_LOCK:
-            credentials = read_credentials(AUTH_BASE)
-            if credentials is None:
-                return False
-            return check_authorization(
-                self.headers.get("Authorization"),
-                *credentials,
-            )
+        return validate_session(self.session_token())
 
     def do_GET(self):
+        if self.path == "/login":
+            page = AUTH_BASE / "http_control_login.html"
+            if not page.is_file():
+                self.send_error(404, "Login page not installed")
+                return
+
+            body = page.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+
         if self.path == "/api/auth/status":
             configured = read_credentials(AUTH_BASE) is not None
             body = json.dumps({
@@ -252,8 +297,12 @@ class HttpControlWebHandler(BaseHTTPRequestHandler):
             return
 
         if not self.is_authenticated():
-            self.send_response(401)
-            self.send_header("WWW-Authenticate", 'Basic realm="HTTP Control"')
+            if self.path == "/editor":
+                self.send_response(303)
+                self.send_header("Location", "/login")
+            else:
+                self.send_response(401)
+            self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
@@ -431,15 +480,10 @@ th { background: #e2e8f0; }
             self.send_error(415, "JSON required")
             return
 
-        # Reject cross-origin browser requests.
-        origin = self.headers.get("Origin")
-        if origin:
-            from urllib.parse import urlsplit
-            parsed = urlsplit(origin)
-            host = self.headers.get("Host", "")
-            if parsed.scheme != "https" or parsed.netloc != host:
-                self.send_error(403, "Invalid origin")
-                return
+        # Require requests from the same HTTPS origin.
+        if not self.valid_request_origin():
+            self.send_error(403, "Invalid origin")
+            return
 
         try:
             size = int(self.headers.get("Content-Length", "0"))
@@ -482,6 +526,9 @@ th { background: #e2e8f0; }
                         new_password,
                     )
 
+                # Any successful password update invalidates all sessions.
+                destroy_all_sessions()
+
             self.send_response(204)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", "0")
@@ -494,7 +541,80 @@ th { background: #e2e8f0; }
         except OSError:
             self.send_error(500, "Password update failed")
 
+    def handle_login(self):
+        if self.headers.get("Content-Type", "").split(";")[0].strip().lower() != "application/json":
+            self.send_error(415, "JSON required")
+            return
+
+        if not self.valid_request_origin():
+            self.send_error(403, "Invalid origin")
+            return
+
+        try:
+            size = int(self.headers.get("Content-Length", "0"))
+            if not 0 < size <= 8192:
+                raise ValueError("Invalid request size")
+
+            data = json.loads(self.rfile.read(size))
+            password = data.get("password")
+            if not isinstance(password, str):
+                raise ValueError("Password required")
+
+            with AUTH_LOCK:
+                ip = self.client_address[0]
+
+                if not login_allowed(ip):
+                    self.send_error(429, "Too many login attempts")
+                    return
+
+                credentials = read_credentials(AUTH_BASE)
+                if credentials is None or not check_password(password, *credentials):
+                    record_login_failure(ip)
+                    self.send_error(403, "Invalid credentials")
+                    return
+
+                clear_login_failures(ip)
+                token = create_session()
+
+            self.send_response(204)
+            self.set_session_cookie(token)
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+
+        except (ValueError, TypeError, UnicodeError, AttributeError):
+            self.send_error(400, "Invalid login request")
+
+    def valid_request_origin(self):
+        from urllib.parse import urlsplit
+
+        origin = self.headers.get("Origin")
+        if not origin:
+            return False
+
+        parsed = urlsplit(origin)
+        return (
+            parsed.scheme == "https"
+            and parsed.netloc == self.headers.get("Host", "")
+        )
+
     def do_POST(self):
+        if self.path == "/api/auth/login":
+            self.handle_login()
+            return
+
+        if self.path == "/api/auth/logout":
+            if not self.valid_request_origin():
+                self.send_error(403, "Invalid origin")
+                return
+            destroy_session(self.session_token())
+            self.send_response(204)
+            self.clear_session_cookie()
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
         if self.path in (
             "/api/auth/setup",
             "/api/auth/change",
@@ -507,9 +627,12 @@ th { background: #e2e8f0; }
             self.send_error(404)
             return
 
+        if not self.valid_request_origin():
+            self.send_error(403, "Invalid origin")
+            return
+
         if not self.is_authenticated():
             self.send_response(401)
-            self.send_header("WWW-Authenticate", 'Basic realm="HTTP Control"')
             self.end_headers()
             return
 

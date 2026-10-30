@@ -685,7 +685,7 @@ if __name__ == "__main__":
         temporary.chmod(0o600)
         temporary.replace(identity_file)
 
-        polyglot.start("1.6.0")
+        polyglot.start("1.6.1")
 
         polyglot.subscribe(
             polyglot.CUSTOMPARAMS,
