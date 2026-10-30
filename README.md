@@ -33,7 +33,7 @@ Designed for eisy and PG3x.
 
 **Note:** The HTTPS server uses a self-signed certificate, so your browser may display a security warning on first connection.
 
-PG3x Custom Parameters remain supported as an alternative configuration method. Existing Custom Parameters are automatically imported into the web editor when no saved web configuration exists.
+The HTTPS editor and eisy-ui Custom Parameters use the same configuration. Settings entered through either interface are visible in the other after refreshing the page.
 
 ## Configuration
 
@@ -55,16 +55,17 @@ Both `urlN_name` and `urlN_url` are required to create an endpoint.
 
 When using the web editor, click Save Configuration to apply endpoint, response-field, and scene-controller changes immediately. Changes made through PG3x Custom Parameters require restarting the node server.
 
-## Configuration Precedence
+## Configuration Storage and Synchronization
 
-HTTP Control supports configuration through either PG3x Custom Parameters or the HTTPS web editor.
+HTTP Control stores endpoint configuration in **eisy-ui Custom Parameters**. Both the HTTPS web editor and the eisy-ui Configuration page access the same settings.
 
-- **First-time use:** If no saved web configuration exists, the editor automatically imports existing PG3x Custom Parameters. Previously configured endpoints appear in the editor.
-- **After saving in the web editor:** The configuration is saved to `data/endpoints.json` and takes precedence over PG3x Custom Parameters.
-- **After restarting the node server:** The saved web configuration is loaded automatically. Changes made only in PG3x Custom Parameters will not override it.
-- **Returning to manual configuration:** Remove `data/endpoints.json` and restart the node server. The existing PG3x Custom Parameters will become active again.
+- **HTTPS editor:** Save Configuration writes settings directly to eisy-ui and applies endpoint changes immediately.
+- **eisy-ui Configuration page:** Changes saved here appear in the HTTPS editor after refreshing it. Restart the node server to apply these changes to running endpoints.
+- **Existing installations:** On upgrade, legacy `data/endpoints.json` settings are automatically migrated to eisy-ui.
+- **Migration backup:** After successful migration and verification, the original file is preserved as `data/endpoints.json.migrated`.
+- **Unused endpoints:** Saving through the HTTPS editor removes configuration parameters for endpoints without a URL.
 
-**Important:** The two configuration methods do not synchronize automatically. Once you begin saving through the web editor, continue making configuration changes there unless you intentionally switch back to PG3x Custom Parameters.
+There is no longer a separate HTML configuration file that overrides eisy-ui. You can use either interface without switching configuration modes.
 
 ## Web Editor Password Management
 
@@ -294,7 +295,20 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.5.3
+1.6.0
+
+## Release Notes — 1.6.0
+
+- Made eisy-ui custom parameters the single source of configuration.
+- Added automatic migration of existing HTML editor configurations
+  from endpoints.json during plugin startup.
+- Preserved the original configuration as endpoints.json.migrated
+  after successful migration.
+- Added bidirectional configuration synchronization between the
+  HTML editor and eisy-ui.
+- Removed unused endpoint parameters when saving configuration.
+- Added readback verification of saved and deleted parameters.
+- Preserved existing configured endpoints and unrelated parameters.
 
 ## Release Notes — 1.5.3
 

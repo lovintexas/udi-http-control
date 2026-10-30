@@ -23,6 +23,191 @@ AUTH_LOCK = threading.RLock()
 AUTH_BASE = Path(__file__).resolve().parent
 
 
+IDENTITY_FILE = AUTH_BASE / "data/http_control_identity.json"
+
+
+def plugin_api_path(endpoint):
+    identity = json.loads(IDENTITY_FILE.read_text())
+    slot = str(identity.get("profileNum", ""))
+
+    if not slot.isdigit() or int(slot) < 1:
+        raise ValueError("Invalid HTTP_Control plugin slot")
+
+    return f"/api/plugin/{slot}/{endpoint}"
+
+
+
+def write_eisy_customparams(params):
+    import socket
+    import http.client
+
+    if not isinstance(params, dict):
+        raise ValueError("Custom parameters must be a dictionary")
+
+    class UnixConnection(http.client.HTTPConnection):
+        def connect(self):
+            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.sock.settimeout(5)
+            self.sock.connect("/tmp/eisyui-listener")
+
+    conn = UnixConnection("localhost", timeout=5)
+    try:
+        conn.request(
+            "POST",
+            plugin_api_path("custom/customparams"),
+            body=json.dumps(params),
+            headers={"Content-Type": "application/json"}
+        )
+        response = conn.getresponse()
+        body = response.read()
+        if response.status != 200:
+            raise RuntimeError(f"eisy-ui returned HTTP {response.status}")
+        result = json.loads(body)
+        if result.get("successful") is not True:
+            raise RuntimeError("eisy-ui rejected custom parameters")
+        return result
+    finally:
+        conn.close()
+
+
+
+def configs_to_customparams(configs, existing):
+    if not isinstance(configs, list) or len(configs) != 16:
+        raise ValueError("Expected 16 endpoint configurations")
+    if not isinstance(existing, dict):
+        raise ValueError("Existing parameters must be a dictionary")
+
+    params = dict(existing)
+
+    for num, entry in enumerate(configs, 1):
+        if not isinstance(entry, dict):
+            raise ValueError(f"Invalid endpoint {num}")
+
+        prefix = f"url{num}_"
+
+        if not str(entry.get("url", "")).strip():
+            for key in list(params):
+                if key.startswith(prefix):
+                    params.pop(key)
+            continue
+
+        for key in ("name", "url", "method", "interval", "headers", "body"):
+            value = entry.get(key, "")
+            if isinstance(value, (dict, list)):
+                value = json.dumps(value)
+            params[prefix + key] = str(value)
+
+        fields = entry.get("fields", {})
+        if not isinstance(fields, dict):
+            raise ValueError(f"Invalid fields for endpoint {num}")
+
+        for i in range(1, 9):
+            field = fields.get(str(i), fields.get(i, {}))
+            if not isinstance(field, dict):
+                raise ValueError(f"Invalid field {i} for endpoint {num}")
+
+            params[prefix + f"field{i}"] = str(field.get("path", ""))
+
+            for key in ("controller", "on", "off",
+                        "on_operator", "off_operator"):
+                value = field.get(key, "")
+                if key == "controller":
+                    value = "true" if str(value).lower() in (
+                        "true", "yes", "1", "on"
+                    ) else "false"
+                params[prefix + f"field{i}_{key}"] = str(value)
+
+    return params
+
+
+
+_migration_lock = __import__("threading").Lock()
+
+def migrate_saved_config():
+    with _migration_lock:
+        return migrate_saved_config_unlocked()
+
+def migrate_saved_config_unlocked():
+    source = AUTH_BASE / "data/endpoints.json"
+    if not source.exists():
+        return False
+
+    backup = source.with_name("endpoints.json.migrated")
+    if backup.exists():
+        raise RuntimeError("Migration backup already exists; refusing to overwrite")
+
+    configs = json.loads(source.read_text())
+    if not isinstance(configs, list) or len(configs) != 16:
+        raise ValueError("Invalid saved endpoint configuration")
+
+    if not all(isinstance(entry, dict) for entry in configs):
+        raise ValueError("Invalid endpoint entry in saved configuration")
+
+    active = [
+        i for i, entry in enumerate(configs, 1)
+        if entry.get("url")
+    ]
+
+    existing = read_eisy_customparams()
+    converted = configs_to_customparams(configs, existing)
+
+    prefixes = tuple(f"url{i}_" for i in active)
+    merged = dict(existing)
+    merged.update({
+        k: v for k, v in converted.items()
+        if k.startswith(prefixes)
+    })
+
+    write_eisy_customparams(merged)
+
+    verified = read_eisy_customparams()
+    for key, value in merged.items():
+        if verified.get(key) != value:
+            raise RuntimeError(
+                f"Migration verification failed for parameter {key}"
+            )
+
+    source.rename(backup)
+    return True
+
+
+def read_eisy_customparams():
+    import socket
+    import http.client
+
+    class UnixConnection(http.client.HTTPConnection):
+        def connect(self):
+            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            self.sock.settimeout(5)
+            self.sock.connect("/tmp/eisyui-listener")
+
+    conn = UnixConnection("localhost", timeout=5)
+    try:
+        conn.request(
+            "GET",
+            plugin_api_path("custom/customparams")
+        )
+        response = conn.getresponse()
+        body = response.read()
+
+        if response.status != 200:
+            raise RuntimeError(
+                f"eisy-ui returned HTTP {response.status}"
+            )
+
+        result = json.loads(body)
+        if result.get("successful") is not True:
+            raise RuntimeError("eisy-ui rejected configuration request")
+
+        params = result.get("data")
+        if not isinstance(params, dict):
+            raise RuntimeError("Invalid eisy-ui configuration response")
+
+        return params
+    finally:
+        conn.close()
+
+
 class HttpControlWebHandler(BaseHTTPRequestHandler):
     controller = None
 
@@ -74,25 +259,17 @@ class HttpControlWebHandler(BaseHTTPRequestHandler):
             return
 
         if self.path == "/api/config":
-            saved_file = Path(__file__).resolve().parent / "data" / "endpoints.json"
-            if saved_file.is_file():
-                try:
-                    with saved_file.open() as source:
-                        saved = json.load(source)
-                    if isinstance(saved, list) and len(saved) == 16:
-                        body = json.dumps(saved).encode("utf-8")
-                        self.send_response(200)
-                        self.send_header("Content-Type", "application/json")
-                        self.send_header("Cache-Control", "no-store")
-                        self.send_header("Content-Length", str(len(body)))
-                        self.end_headers()
-                        self.wfile.write(body)
-                        return
-                except (OSError, ValueError) as error:
-                    if logger := getattr(self.server, "logger", None):
-                        logger.warning("Could not load saved configuration: %s", error)
+            try:
+                migrated = migrate_saved_config()
+                params = read_eisy_customparams()
+                if migrated:
+                    self.controller.params = dict(params)
+            except Exception:
+                if logger := getattr(self.server, "logger", None):
+                    logger.exception("Unable to load or migrate eisy-ui configuration")
+                self.send_error(500, "Configuration unavailable; original JSON retained if migration failed")
+                return
 
-            params = dict(self.controller.params)
             configs = []
 
             for num in range(1, 17):
@@ -336,6 +513,15 @@ th { background: #e2e8f0; }
             self.end_headers()
             return
 
+        # Complete migration before processing the submitted configuration.
+        try:
+            migrate_saved_config()
+        except Exception:
+            if logger := getattr(self.server, "logger", None):
+                logger.exception("Legacy configuration migration failed")
+            self.send_error(500, "Legacy configuration migration failed")
+            return
+
         try:
             size = int(self.headers.get("Content-Length", "0"))
             if not 0 < size <= 262144:
@@ -390,20 +576,28 @@ th { background: #e2e8f0; }
                         if on_op == off_op == "==" and on == off:
                             raise ValueError("ON and OFF values must differ")
 
-            directory = Path(__file__).resolve().parent / "data"
-            directory.mkdir(parents=True, exist_ok=True)
+            # Preserve unrelated eisy-ui parameters.
+            existing = read_eisy_customparams()
+            merged = configs_to_customparams(configs, existing)
 
-            fd, temporary = tempfile.mkstemp(dir=directory)
-            try:
-                with os.fdopen(fd, "w") as output:
-                    json.dump(configs, output, indent=2)
-                    output.flush()
-                    os.fsync(output.fileno())
-                os.chmod(temporary, 0o600)
-                os.replace(temporary, directory / "endpoints.json")
-            finally:
-                if os.path.exists(temporary):
-                    os.unlink(temporary)
+            # Save to eisy-ui and verify before applying changes.
+            write_eisy_customparams(merged)
+            verified = read_eisy_customparams()
+
+            if verified != merged:
+                missing = set(merged) - set(verified)
+                extra = set(verified) - set(merged)
+                changed = {
+                    key for key in merged.keys() & verified.keys()
+                    if merged[key] != verified[key]
+                }
+                raise RuntimeError(
+                    "Configuration verification failed: "
+                    f"{len(missing)} missing, {len(extra)} extra, "
+                    f"{len(changed)} changed parameters"
+                )
+
+            self.controller.params = dict(verified)
 
             # Apply configuration to existing and newly configured endpoints.
             self.controller.apply_saved_config(configs)
@@ -414,8 +608,10 @@ th { background: #e2e8f0; }
 
         except (ValueError, TypeError, UnicodeError) as error:
             self.send_error(400, str(error))
-        except OSError:
-            self.send_error(500, "Unable to save configuration")
+        except (OSError, RuntimeError):
+            if logger := getattr(self.server, "logger", None):
+                logger.exception("Unable to save or verify eisy-ui configuration")
+            self.send_error(500, "Unable to save or verify eisy-ui configuration")
 
 
 def start_web_server(controller, logger=None, host="127.0.0.1", port=8766):

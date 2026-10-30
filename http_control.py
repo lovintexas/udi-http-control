@@ -371,7 +371,13 @@ class Controller(udi_interface.Node):
         LOGGER.info("Configuration updated; restart required")
 
     def load_saved_config(self):
-        path = Path(__file__).resolve().parent / "data/endpoints.json"
+        directory = Path(__file__).resolve().parent / "data"
+        path = directory / "endpoints.json"
+
+        # Emergency recovery if migration completed but eisy-ui is unavailable.
+        if not path.exists():
+            path = directory / "endpoints.json.migrated"
+
         if not path.exists():
             return
 
@@ -404,7 +410,8 @@ class Controller(udi_interface.Node):
             LOGGER.exception("Unable to load saved HTTP Control configuration")
 
     def start(self):
-        self.load_saved_config()
+        # eisy-ui custom parameters are the configuration source.
+        # Legacy endpoints.json is migrated automatically during startup.
         for num in range(1, 17):
             prefix = f"url{num}_"
 
@@ -666,7 +673,19 @@ def stop_handler():
 if __name__ == "__main__":
     try:
         polyglot = udi_interface.Interface([])
-        polyglot.start("1.5.2")
+
+        # Publish this plugin instance's identity for the HTML editor.
+        identity_file = Path(__file__).resolve().parent / "data/http_control_identity.json"
+        identity_file.parent.mkdir(parents=True, exist_ok=True)
+        temporary = identity_file.with_suffix(".tmp")
+        temporary.write_text(json.dumps({
+            "uuid": polyglot.uuid,
+            "profileNum": str(polyglot.profileNum)
+        }))
+        temporary.chmod(0o600)
+        temporary.replace(identity_file)
+
+        polyglot.start("1.6.0")
 
         polyglot.subscribe(
             polyglot.CUSTOMPARAMS,
@@ -691,6 +710,27 @@ if __name__ == "__main__":
         polyglot.addNode(controller)
 
         time.sleep(1)
+
+        # Automatically migrate legacy HTML configuration on upgrade.
+        try:
+            from http_control_web import (
+                migrate_saved_config,
+                read_eisy_customparams,
+            )
+
+            migrated = migrate_saved_config()
+            controller.configure(read_eisy_customparams())
+            if migrated:
+                LOGGER.info(
+                    "Legacy HTML configuration migrated to eisy-ui"
+                )
+
+        except Exception:
+            LOGGER.exception(
+                "Migration failed; using legacy configuration for this startup"
+            )
+            controller.load_saved_config()
+
         controller.start()
 
         try:
