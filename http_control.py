@@ -648,13 +648,24 @@ controller = None
 pending_params = {}
 
 
+from http_control_config_sync import ConfigSync
+config_sync = ConfigSync()
+
+
 def custom_params_handler(params):
     global pending_params
     pending_params = dict(params)
+
+    config_sync.update(pending_params)
     LOGGER.info("HTTP Control custom parameters received")
 
     if controller is not None:
         controller.configure(pending_params)
+
+
+def config_done_handler():
+    config_sync.mark_ready()
+    LOGGER.info("HTTP Control initial PG3x configuration received")
 
 
 def poll_handler(poll_type):
@@ -682,14 +693,19 @@ if __name__ == "__main__":
             "uuid": polyglot.uuid,
             "profileNum": str(polyglot.profileNum)
         }))
-        temporary.chmod(0o600)
+        temporary.chmod(0o644)
         temporary.replace(identity_file)
 
-        polyglot.start("1.6.1")
+        polyglot.start("1.6.2")
 
         polyglot.subscribe(
             polyglot.CUSTOMPARAMS,
             custom_params_handler
+        )
+
+        polyglot.subscribe(
+            polyglot.CONFIGDONE,
+            config_done_handler
         )
 
         polyglot.subscribe(
@@ -709,27 +725,43 @@ if __name__ == "__main__":
         controller.configure(pending_params)
         polyglot.addNode(controller)
 
-        time.sleep(1)
+        # Bind the web editor to the PG3x MQTT configuration bridge.
+        from http_control_web import (
+            bind_config_sync,
+            migrate_saved_config,
+            read_eisy_customparams,
+        )
 
-        # Automatically migrate legacy HTML configuration on upgrade.
+        bind_config_sync(config_sync, polyglot)
+
+        # Wait until PG3x has delivered its initial configuration.
+        # An empty configuration is valid once CONFIGDONE arrives.
         try:
-            from http_control_web import (
-                migrate_saved_config,
-                read_eisy_customparams,
-            )
-
-            migrated = migrate_saved_config()
-            controller.configure(read_eisy_customparams())
-            if migrated:
-                LOGGER.info(
-                    "Legacy HTML configuration migrated to eisy-ui"
-                )
-
-        except Exception:
-            LOGGER.exception(
-                "Migration failed; using legacy configuration for this startup"
+            initial_params = config_sync.snapshot(timeout=15)
+        except TimeoutError:
+            LOGGER.warning(
+                "PG3x initial configuration timed out; "
+                "preserving legacy configuration"
             )
             controller.load_saved_config()
+        else:
+            controller.configure(initial_params)
+
+            # Migrate legacy HTML configuration only after PG3x
+            # has finished delivering its initial configuration.
+            try:
+                migrated = migrate_saved_config()
+                controller.configure(read_eisy_customparams())
+                if migrated:
+                    LOGGER.info(
+                        "Legacy HTML configuration migrated to PG3x"
+                    )
+            except Exception:
+                LOGGER.exception(
+                    "Migration failed; using legacy configuration "
+                    "for this startup"
+                )
+                controller.load_saved_config()
 
         controller.start()
 

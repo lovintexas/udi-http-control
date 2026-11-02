@@ -46,38 +46,22 @@ def plugin_api_path(endpoint):
 
 
 
+_config_sync = None
+_config_polyglot = None
+
+
+def bind_config_sync(sync, polyglot):
+    global _config_sync, _config_polyglot
+    _config_sync = sync
+    _config_polyglot = polyglot
+
+
 def write_eisy_customparams(params):
-    import socket
-    import http.client
+    if _config_sync is None or _config_polyglot is None:
+        raise RuntimeError("PG3x configuration bridge not initialized")
 
-    if not isinstance(params, dict):
-        raise ValueError("Custom parameters must be a dictionary")
-
-    class UnixConnection(http.client.HTTPConnection):
-        def connect(self):
-            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.sock.settimeout(5)
-            self.sock.connect("/tmp/eisyui-listener")
-
-    conn = UnixConnection("localhost", timeout=5)
-    try:
-        conn.request(
-            "POST",
-            plugin_api_path("custom/customparams"),
-            body=json.dumps(params),
-            headers={"Content-Type": "application/json"}
-        )
-        response = conn.getresponse()
-        body = response.read()
-        if response.status != 200:
-            raise RuntimeError(f"eisy-ui returned HTTP {response.status}")
-        result = json.loads(body)
-        if result.get("successful") is not True:
-            raise RuntimeError("eisy-ui rejected custom parameters")
-        return result
-    finally:
-        conn.close()
-
+    confirmed = _config_sync.save(_config_polyglot, params)
+    return {"successful": True, "data": confirmed}
 
 
 def configs_to_customparams(configs, existing):
@@ -160,14 +144,22 @@ def migrate_saved_config_unlocked():
     existing = read_eisy_customparams()
     converted = configs_to_customparams(configs, existing)
 
-    prefixes = tuple(f"url{i}_" for i in active)
     merged = dict(existing)
-    merged.update({
-        k: v for k, v in converted.items()
-        if k.startswith(prefixes)
-    })
 
-    write_eisy_customparams(merged)
+    for i in active:
+        prefix = f"url{i}_"
+
+        # Never overwrite an endpoint already configured in PG3x.
+        if str(existing.get(f"{prefix}url", "")).strip():
+            continue
+
+        merged.update({
+            k: v for k, v in converted.items()
+            if k.startswith(prefix)
+        })
+
+    if merged != existing:
+        write_eisy_customparams(merged)
 
     verified = read_eisy_customparams()
     for key, value in merged.items():
@@ -181,40 +173,10 @@ def migrate_saved_config_unlocked():
 
 
 def read_eisy_customparams():
-    import socket
-    import http.client
+    if _config_sync is None:
+        raise RuntimeError("PG3x configuration bridge not initialized")
 
-    class UnixConnection(http.client.HTTPConnection):
-        def connect(self):
-            self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            self.sock.settimeout(5)
-            self.sock.connect("/tmp/eisyui-listener")
-
-    conn = UnixConnection("localhost", timeout=5)
-    try:
-        conn.request(
-            "GET",
-            plugin_api_path("custom/customparams")
-        )
-        response = conn.getresponse()
-        body = response.read()
-
-        if response.status != 200:
-            raise RuntimeError(
-                f"eisy-ui returned HTTP {response.status}"
-            )
-
-        result = json.loads(body)
-        if result.get("successful") is not True:
-            raise RuntimeError("eisy-ui rejected configuration request")
-
-        params = result.get("data")
-        if not isinstance(params, dict):
-            raise RuntimeError("Invalid eisy-ui configuration response")
-
-        return params
-    finally:
-        conn.close()
+    return _config_sync.snapshot()
 
 
 class HttpControlWebHandler(BaseHTTPRequestHandler):
@@ -745,6 +707,7 @@ def start_web_server(controller, logger=None, host="127.0.0.1", port=8766):
     )
 
     server = ThreadingHTTPServer((host, port), handler)
+    server.logger = logger
 
     try:
         cert_file, key_file = ensure_certificate(

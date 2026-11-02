@@ -39,6 +39,20 @@ def atomic_write(path, content):
             os.fsync(output.fileno())
         os.chmod(temporary, 0o600)
         os.replace(temporary, path)
+
+        # Allow eisy-ui to include administrator credentials
+        # in system backups without making them world-readable.
+        if path.name == "web_auth.txt":
+            import subprocess
+            subprocess.run(
+                [
+                    "/bin/setfacl",
+                    "-m",
+                    "u:eisyui:r:allow",
+                    str(path),
+                ],
+                check=True,
+            )
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
