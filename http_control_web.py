@@ -215,6 +215,14 @@ class HttpControlWebHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if self.path == "/login":
+            if read_credentials(AUTH_BASE) is None:
+                self.send_response(303)
+                self.send_header("Location", "/auth")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
+
             page = AUTH_BASE / "http_control_login.html"
             if not page.is_file():
                 self.send_error(404, "Login page not installed")
@@ -260,8 +268,13 @@ class HttpControlWebHandler(BaseHTTPRequestHandler):
 
         if not self.is_authenticated():
             if self.path == "/editor":
+                destination = (
+                    "/login"
+                    if read_credentials(AUTH_BASE) is not None
+                    else "/auth"
+                )
                 self.send_response(303)
-                self.send_header("Location", "/login")
+                self.send_header("Location", destination)
             else:
                 self.send_response(401)
             self.send_header("Cache-Control", "no-store")
