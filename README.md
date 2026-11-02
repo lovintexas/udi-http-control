@@ -304,7 +304,16 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.6.1
+1.6.3
+
+## Release Notes — 1.6.3
+
+- Fixed HTML editor configuration persistence through PG3x.
+- Added configuration readback confirmation after saving.
+- Fixed eisy-ui system backup failures caused by authentication-file permissions.
+- Preserved secure backup access when administrator credentials are updated.
+- Automatically direct first-time users to administrator password creation.
+- Preserved existing login, session, and password recovery behavior.
 
 ## Release Notes — 1.6.1
 
