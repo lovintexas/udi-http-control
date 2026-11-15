@@ -214,6 +214,14 @@ class HttpControlWebHandler(BaseHTTPRequestHandler):
         return validate_session(self.session_token())
 
     def do_GET(self):
+        if self.path == "/":
+            self.send_response(303)
+            self.send_header("Location", "/editor")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
+
         if self.path == "/login":
             if read_credentials(AUTH_BASE) is None:
                 self.send_response(303)
