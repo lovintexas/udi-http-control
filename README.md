@@ -304,7 +304,13 @@ HTTP requests have a five-second timeout and do not automatically follow redirec
 
 ## Version
 
-1.6.3
+1.6.4
+
+## Release Notes — 1.6.4
+
+- Automatically redirect HTTP requests to HTTPS on port 8766.
+- Allow HTTP and HTTPS connections on the same port.
+- Preserve existing HTTPS authentication and endpoint behavior.
 
 ## Release Notes — 1.6.3
 
