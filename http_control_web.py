@@ -712,14 +712,68 @@ th { background: #e2e8f0; }
             self.send_error(500, "Unable to save or verify eisy-ui configuration")
 
 
+# Accept HTTP and HTTPS on the same port. TLS is applied per connection,
+# allowing an ordinary HTTP request to receive a redirect instead of a TLS error.
+class RedirectingHTTPServer(ThreadingHTTPServer):
+    def get_request(self):
+        sock, address = super().get_request()
+        try:
+            sock.settimeout(10)
+            first = sock.recv(1, __import__("socket").MSG_PEEK)
+            if first == b"\x16":  # TLS handshake record
+                sock = self.tls_context.wrap_socket(sock, server_side=True)
+            return sock, address
+        except Exception:
+            sock.close()
+            raise
+
+
+class HTTPOrHTTPSHandler(HttpControlWebHandler):
+    def handle_one_request(self):
+        if isinstance(self.connection, ssl.SSLSocket):
+            return super().handle_one_request()
+
+        # Parse only the request headers; never handle credentials over HTTP.
+        try:
+            self.raw_requestline = self.rfile.readline(65537)
+            if len(self.raw_requestline) > 65536:
+                self.send_error(414)
+                return
+            if not self.raw_requestline or not self.parse_request():
+                return
+
+            import re
+            host = self.headers.get("Host", "")
+            # Avoid redirecting to an attacker-supplied arbitrary hostname.
+            if not re.fullmatch(r"[A-Za-z0-9.\-]+(?::[0-9]{1,5})?", host):
+                host = self.server.server_address[0]
+                if host in ("", "0.0.0.0", "::"):
+                    host = self.connection.getsockname()[0]
+                host = f"{host}:{self.server.server_address[1]}"
+            elif ":" not in host:
+                host = f"{host}:{self.server.server_address[1]}"
+
+            path = self.path
+            # Request-target must be origin-form; don't accept absolute URLs.
+            if not path.startswith("/") or path.startswith("//"):
+                path = "/"
+            self.send_response(308)
+            self.send_header("Location", f"https://{host}{path}")
+            self.send_header("Content-Length", "0")
+            self.send_header("Connection", "close")
+            self.end_headers()
+        finally:
+            self.close_connection = True
+
+
 def start_web_server(controller, logger=None, host="127.0.0.1", port=8766):
     handler = type(
         "BoundHttpControlWebHandler",
-        (HttpControlWebHandler,),
+        (HTTPOrHTTPSHandler,),
         {"controller": controller},
     )
 
-    server = ThreadingHTTPServer((host, port), handler)
+    server = RedirectingHTTPServer((host, port), handler)
     server.logger = logger
 
     try:
@@ -734,10 +788,7 @@ def start_web_server(controller, logger=None, host="127.0.0.1", port=8766):
             keyfile=key_file,
         )
 
-        server.socket = context.wrap_socket(
-            server.socket,
-            server_side=True,
-        )
+        server.tls_context = context
     except Exception:
         server.server_close()
         raise
