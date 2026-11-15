@@ -723,16 +723,18 @@ th { background: #e2e8f0; }
 # Accept HTTP and HTTPS on the same port. TLS is applied per connection,
 # allowing an ordinary HTTP request to receive a redirect instead of a TLS error.
 class RedirectingHTTPServer(ThreadingHTTPServer):
-    def get_request(self):
-        sock, address = super().get_request()
+    def finish_request(self, request, client_address):
+        # Run protocol detection in the worker thread, not the accept loop.
+        sock = request
         try:
             sock.settimeout(10)
             first = sock.recv(1, __import__("socket").MSG_PEEK)
             if first == b"\x16":  # TLS handshake record
                 sock = self.tls_context.wrap_socket(sock, server_side=True)
-            return sock, address
+            self.RequestHandlerClass(sock, client_address, self)
         except Exception:
             sock.close()
+            request.close()
             raise
 
 
